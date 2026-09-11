@@ -48,11 +48,29 @@ public final class Order implements Serializable {
      *                                  items are null or empty,
      *                                  or payment type is null
      */
+
     public Order(
             long id,
             Customer customer,
             List<OrderItem> items,
             PaymentType paymentType) {
+
+        this(
+                id,
+                customer,
+                items,
+                paymentType,
+                OrderStatus.CREATED,
+                LocalDateTime.now()
+        );
+    }
+    private Order(
+            long id,
+            Customer customer,
+            List<OrderItem> items,
+            PaymentType paymentType,
+            OrderStatus status,
+            LocalDateTime createdAt) {
 
         if (id <= 0) {
             throw new IllegalArgumentException(
@@ -78,12 +96,24 @@ public final class Order implements Serializable {
             );
         }
 
+        if (status == null) {
+            throw new IllegalArgumentException(
+                    "Order status cannot be null"
+            );
+        }
+
+        if (createdAt == null) {
+            throw new IllegalArgumentException(
+                    "Created time cannot be null"
+            );
+        }
+
         this.id = id;
         this.customer = customer;
         this.items = List.copyOf(items);
         this.paymentType = paymentType;
-        this.status = OrderStatus.CREATED;
-        this.createdAt = LocalDateTime.now();
+        this.status = status;
+        this.createdAt = createdAt;
     }
 
     public long getId() {
@@ -144,6 +174,43 @@ public final class Order implements Serializable {
         return items.stream()
                 .mapToDouble(OrderItem::getSubtotal)
                 .sum();
+    }
+    /**
+     * Reconstructs an existing order from persisted state.
+     *
+     * <p>Unlike the public constructor and {@link Builder}, this method
+     * preserves the stored order status and creation time instead of
+     * assigning {@link OrderStatus#CREATED} and the current time.</p>
+     *
+     * <p>This method is primarily used by database repositories when
+     * rebuilding an order retrieved from persistent storage.</p>
+     *
+     * @param id unique identifier of the order
+     * @param customer customer who placed the order
+     * @param items persisted order items
+     * @param paymentType payment method used for the order
+     * @param status persisted order status
+     * @param createdAt persisted creation time
+     * @return reconstructed order
+     * @throws IllegalArgumentException if any required order data is invalid
+     */
+
+    public static Order restore(
+            long id,
+            Customer customer,
+            List<OrderItem> items,
+            PaymentType paymentType,
+            OrderStatus status,
+            LocalDateTime createdAt) {
+
+        return new Order(
+                id,
+                customer,
+                items,
+                paymentType,
+                status,
+                createdAt
+        );
     }
 
     /**
