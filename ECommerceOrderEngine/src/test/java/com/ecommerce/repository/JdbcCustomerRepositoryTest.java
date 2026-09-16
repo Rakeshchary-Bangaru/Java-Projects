@@ -2,6 +2,9 @@ package com.ecommerce.repository;
 
 import com.ecommerce.database.DatabaseConnection;
 import com.ecommerce.model.Customer;
+import com.ecommerce.testutil.TestDatabaseGuard;
+import org.junit.jupiter.api.BeforeAll;
+
 
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +18,14 @@ import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JdbcCustomerRepositoryTest {
+
+
+    @BeforeAll
+    static void verifyTestDatabase()
+            throws Exception {
+
+        TestDatabaseGuard.assertUsingTestDatabase();
+    }
 
     @BeforeEach
     void cleanTestCustomers() throws Exception{

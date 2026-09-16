@@ -3,6 +3,9 @@ package com.ecommerce.repository;
 import com.ecommerce.model.*;
 import com.ecommerce.database.DatabaseConnection;
 
+import com.ecommerce.testutil.TestDatabaseGuard;
+import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +18,14 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JdbcOrderRepositoryTest{
+
+    @BeforeAll
+    static void verifyTestDatabase()
+            throws Exception {
+
+        TestDatabaseGuard.assertUsingTestDatabase();
+    }
+
     @BeforeEach
     void cleanTestData() throws Exception{
         try(Connection connection = DatabaseConnection.getConnection()){

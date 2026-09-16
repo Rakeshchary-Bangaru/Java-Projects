@@ -4,10 +4,11 @@
 
 `ECommerceOrderEngine` is a Java-based e-commerce backend project designed to demonstrate the progressive development of an order-processing system from Core Java to database-backed application architecture.
 
-The project currently contains two major versions:
+The project currently contains three major versions:
 
 - **V1 – Core Java:** In-memory inventory, payment strategies, concurrent checkout processing, notifications, analytics, file persistence, and serialization.
 - **V2 – Maven + JDBC + MySQL:** Relational database persistence, repository pattern, JDBC transactions, atomic inventory reservation, rollback handling, and database-level concurrency control.
+- **V3 – Servlets + JSP + Tomcat:** Server-rendered web application with Product and Customer CRUD, session-based cart management, transactional checkout, order and inventory views, JSTL/EL, friendly error handling, shared navigation/CSS, and isolated development/test databases.
 
 The project focuses on object-oriented design, SOLID principles, design patterns, concurrency, database programming, transaction management, exception handling, and automated testing.
 
@@ -424,24 +425,51 @@ ECommerceOrderEngine/
 │   │   │       │
 │   │   │       ├── persistence/
 │   │   │       │
-│   │   │       └── repository/
-│   │   │           ├── ProductRepository.java
-│   │   │           ├── JdbcProductRepository.java
-│   │   │           ├── CustomerRepository.java
-│   │   │           ├── JdbcCustomerRepository.java
-│   │   │           ├── InventoryRepository.java
-│   │   │           ├── JdbcInventoryRepository.java
-│   │   │           ├── OrderRepository.java
-│   │   │           ├── JdbcOrderRepository.java
-│   │   │           ├── PaymentRepository.java
-│   │   │           └── JdbcPaymentRepository.java
+│   │   │       ├── repository/
+│   │   │       │   ├── ProductRepository.java
+│   │   │       │   ├── JdbcProductRepository.java
+│   │   │       │   ├── CustomerRepository.java
+│   │   │       │   ├── JdbcCustomerRepository.java
+│   │   │       │   ├── InventoryRepository.java
+│   │   │       │   ├── JdbcInventoryRepository.java
+│   │   │       │   ├── OrderRepository.java
+│   │   │       │   ├── JdbcOrderRepository.java
+│   │   │       │   ├── PaymentRepository.java
+│   │   │       │   └── JdbcPaymentRepository.java
+│   │   │       │
+│   │   │       └── web/
+│   │   │           ├── ProductServlet.java
+│   │   │           ├── CustomerServlet.java
+│   │   │           ├── CartServlet.java
+│   │   │           ├── CheckoutServlet.java
+│   │   │           ├── OrderServlet.java
+│   │   │           ├── OrderViewServlet.java
+│   │   │           └── InventoryServlet.java
 │   │   │
-│   │   └── resources/
-│   │       └── schema.sql
+│   │   ├── resources/
+│   │   │   └── schema.sql
+│   │   │
+│   │   └── webapp/
+│   │       ├── css/
+│   │       │   └── styles.css
+│   │       └── WEB-INF/
+│   │           └── views/
+│   │               ├── includes/
+│   │               │   └── header.jsp
+│   │               ├── products.jsp
+│   │               ├── customers.jsp
+│   │               ├── cart.jsp
+│   │               ├── checkout.jsp
+│   │               ├── orders.jsp
+│   │               ├── order-details.jsp
+│   │               └── inventory.jsp
 │   │
 │   └── test/
 │       └── java/
 │           └── com/ecommerce/
+│
+├── docs/
+│   └── screenshots/
 │
 └── README.md
 ```
@@ -487,7 +515,7 @@ Run the complete test suite with:
 mvn test
 ```
 
-Current V2 test status:
+Current automated test status:
 
 ```text
 Tests: 206
@@ -495,7 +523,7 @@ Failures: 0
 Errors: 0
 ```
 
-The test suite includes:
+The test suite runs against the isolated `ecommerce_test_db` and includes:
 
 ```text
 Unit tests
@@ -510,7 +538,7 @@ Insufficient stock tests
 
 ---
 
-## Key V2 Concepts Demonstrated
+## Key Concepts Demonstrated
 
 ```text
 Maven
@@ -537,7 +565,365 @@ Integration Testing
 Dependency Injection
 SOLID Principles
 Design Patterns
+Jakarta Servlets
+JSP
+JSTL
+Expression Language (EL)
+HttpSession
+WAR Packaging
+Apache Tomcat
+MVC-style Web Layer
+Friendly HTTP Error Handling
+Development/Test Database Isolation
 ```
+
+---
+
+# V3 – Servlets + JSP + Tomcat
+
+V3 turns the JDBC-backed application into a server-rendered web application deployed as a WAR on Apache Tomcat.
+
+The existing V2 domain, repository, payment, inventory, and transactional checkout logic are reused rather than duplicated in the web layer.
+
+## V3 Features
+
+- Apache Tomcat deployment using WAR packaging
+- Jakarta Servlet API
+- JSP views
+- JSTL and Expression Language (EL)
+- Product web CRUD
+- Customer web CRUD
+- Session-based shopping cart using `HttpSession`
+- Add, update, remove, and clear cart operations
+- Customer and payment selection during checkout
+- Transactional web checkout through `JdbcCheckoutService`
+- Atomic inventory reservation
+- Payment processing using Card, UPI, and Wallet strategies
+- Order success page
+- Order history and order-detail pages
+- Order creation date/time display
+- Inventory dashboard
+- Add-stock and set-stock operations
+- Friendly checkout and constraint-error pages
+- Shared navigation and CSS
+- Separate development and automated-test databases
+
+## V3 Web Architecture
+
+```text
+                         Browser
+                            |
+                            v
+                     Apache Tomcat
+                            |
+                            v
+                         Servlets
+                            |
+                +-----------+-----------+
+                |                       |
+                v                       v
+         JSP + JSTL + EL          Application Services
+                                         |
+                                         v
+                               JdbcCheckoutService
+                                         |
+                           +-------------+-------------+
+                           |             |             |
+                           v             v             v
+                     InventoryRepo   OrderRepo    PaymentRepo
+                           |             |             |
+                           +-------------+-------------+
+                                         |
+                                         v
+                                        JDBC
+                                         |
+                                         v
+                                       MySQL
+```
+
+The Servlets handle HTTP input, request/session state, routing, and preparation of view data. JSP pages are responsible for presentation, while existing services and repositories continue to contain business and persistence logic.
+
+## Servlet and JSP Flow
+
+```text
+Browser Request
+      |
+      v
+Servlet
+      |
+      +--> Validate request parameters
+      |
+      +--> Call repository/service
+      |
+      +--> Store data in request/session
+      |
+      v
+JSP
+      |
+      +--> JSTL for loops/conditions
+      |
+      +--> EL for object properties
+      |
+      v
+HTML Response
+```
+
+The main JSP pages are scriptlet-free and use JSTL + EL instead of embedding Java code directly in the view layer.
+
+## Product and Customer CRUD
+
+V3 exposes browser-based CRUD flows for products and customers.
+
+```text
+Products
+GET  /products
+GET  /products/new
+POST /products
+GET  /products/edit?id=...
+POST /products/edit
+POST /products/delete
+
+Customers
+GET  /customers
+GET  /customers/new
+POST /customers
+GET  /customers/edit?id=...
+POST /customers/edit
+POST /customers/delete
+```
+
+Foreign-key conflicts are handled without weakening database constraints. Referenced products and customers return a friendly conflict page instead of exposing the default Tomcat error page.
+
+## Session-Based Shopping Cart
+
+The shopping cart is stored in `HttpSession`, allowing cart contents to survive across multiple HTTP requests for the same browser session.
+
+```text
+POST /cart/add
+GET  /cart
+POST /cart/update
+POST /cart/remove
+POST /cart/clear
+```
+
+```text
+Browser
+   |
+   | JSESSIONID
+   v
+Tomcat HttpSession
+   |
+   └── cart
+       ├── CartItem
+       ├── CartItem
+       └── CartItem
+```
+
+The existing `Cart` API is reused for add, remove, quantity-update, subtotal, and total calculations.
+
+## Web Checkout
+
+The checkout page reads the cart from the session and allows the user to select a customer and payment type.
+
+```text
+Session Cart
+     |
+     v
+GET /checkout
+     |
+     v
+Select Customer + Payment Type
+     |
+     v
+POST /checkout
+     |
+     v
+JdbcCheckoutService
+     |
+     +--> Reserve inventory
+     +--> Calculate total
+     +--> Process payment
+     +--> Create order
+     +--> Persist order/items
+     +--> Persist payment
+     |
+     v
+COMMIT
+```
+
+On success, the cart is removed from the session only after the transaction commits.
+
+If checkout fails:
+
+```text
+Failure
+   |
+   v
+ROLLBACK
+   |
+   +--> Inventory changes reversed
+   +--> Order/payment not committed
+   +--> Session cart preserved
+```
+
+## Orders UI
+
+V3 provides browser-based order history and order details.
+
+```text
+GET /orders
+GET /orders/view?id=...
+```
+
+Order details include:
+
+- Order ID
+- Customer
+- Status
+- Payment type
+- Creation date/time
+- Purchased products
+- Quantity
+- Historical unit price
+- Subtotal
+
+## Inventory UI
+
+The inventory dashboard displays current stock for each product and provides two distinct operations:
+
+```text
+Add Stock
+→ Increase existing quantity
+
+Set Stock
+→ Replace the current quantity, including setting it to 0
+```
+
+Checkout uses the same atomic stock-reservation logic introduced in V2.
+
+## Friendly Error Handling
+
+V3 replaces several raw Tomcat error pages with application-level views.
+
+Handled cases include:
+
+- Insufficient stock during checkout
+- Payment failure
+- Invalid checkout input
+- Duplicate customer ID/email
+- Referenced product deletion
+- Referenced customer deletion
+- Invalid order ID
+- Missing order
+
+The application preserves appropriate HTTP status codes such as `400`, `404`, and `409` while rendering a more useful response body.
+
+## Development and Test Database Isolation
+
+The running Tomcat application uses:
+
+```text
+ecommerce_db
+```
+
+Automated Maven/JUnit tests use:
+
+```text
+ecommerce_test_db
+```
+
+The same `schema.sql` is applied to both databases, but their data remains independent.
+
+```text
+Tomcat / Manual Testing
+        |
+        v
+   ecommerce_db
+
+
+Maven / JUnit
+        |
+        v
+ecommerce_test_db
+```
+
+Maven Surefire supplies the test database URL through `ECOMMERCE_DB_URL`, while the application falls back to the normal development database when the override is not present.
+
+This prevents automated test cleanup from deleting or conflicting with manually created development data.
+
+## Running V3 Locally
+
+Build the application:
+
+```bash
+mvn clean package
+```
+
+The WAR is generated at:
+
+```text
+target/ecommerce-order-engine-3.0-SNAPSHOT.war
+```
+
+Set the database password:
+
+```bash
+read -s "ECOMMERCE_DB_PASSWORD?MySQL password: "
+export ECOMMERCE_DB_PASSWORD
+```
+
+Deploy the WAR to Tomcat as `ecommerce.war`:
+
+```bash
+rm -rf "$CATALINA_HOME/webapps/ecommerce"
+rm -f "$CATALINA_HOME/webapps/ecommerce.war"
+
+cp target/ecommerce-order-engine-3.0-SNAPSHOT.war \
+   "$CATALINA_HOME/webapps/ecommerce.war"
+
+"$CATALINA_HOME/bin/startup.sh"
+```
+
+Open:
+
+```text
+http://localhost:8080/ecommerce/products
+```
+
+## V3 Screenshots
+
+### Products
+
+![Products](docs/screenshots/products.png)
+
+### Customers
+
+![Customers](docs/screenshots/customers.png)
+
+### Shopping Cart
+
+![Shopping Cart](docs/screenshots/cart.png)
+
+### Checkout
+
+![Checkout](docs/screenshots/checkout.png)
+
+### Orders
+
+![Orders](docs/screenshots/orders.png)
+
+### Order Details
+
+![Order Details](docs/screenshots/order-details.png)
+
+### Inventory
+
+![Inventory](docs/screenshots/inventory.png)
+
+### Checkout Error Handling
+
+![Checkout Error](docs/screenshots/checkout-error.png)
+
 
 ---
 
@@ -546,8 +932,6 @@ Design Patterns
 Future versions of the project will progressively introduce:
 
 ```text
-Servlets and JSP
-Tomcat
 Hibernate
 JPA
 Spring Core
@@ -580,10 +964,10 @@ Testcontainers
 ## Version Roadmap
 
 ```text
-V1  Core Java                     ✅
-V2  Maven + JDBC + MySQL          ✅
-V3  Servlets + JSP + Tomcat       ⏭️
-V4  Hibernate + JPA
+V1  Core Java                  
+V2  Maven + JDBC + MySQL         
+V3  Servlets + JSP + Tomcat
+V4  Hibernate + JPA           
 V5  Spring Core + Spring Boot
 V6  REST APIs + Spring Data JPA
 V7  Spring Security
@@ -591,4 +975,3 @@ V8  Advanced Integration Testing
 V9  Docker
 V10 Redis + Kafka + Microservices
 V11 Cloud + CI/CD
-```

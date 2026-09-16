@@ -8,6 +8,9 @@ import com.ecommerce.model.PaymentType;
 import com.ecommerce.model.Product;
 import com.ecommerce.payment.PaymentResult;
 
+import com.ecommerce.testutil.TestDatabaseGuard;
+import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +22,13 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JdbcPaymentRepositoryTest {
+
+    @BeforeAll
+    static void verifyTestDatabase()
+            throws Exception {
+
+        TestDatabaseGuard.assertUsingTestDatabase();
+    }
 
     @BeforeEach
     void cleanTestData() throws Exception {

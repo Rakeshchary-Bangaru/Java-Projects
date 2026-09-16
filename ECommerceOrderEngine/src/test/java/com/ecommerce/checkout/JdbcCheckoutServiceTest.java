@@ -9,6 +9,9 @@ import com.ecommerce.payment.PaymentProcessor;
 import com.ecommerce.payment.PaymentResult;
 import com.ecommerce.repository.*;
 
+import com.ecommerce.testutil.TestDatabaseGuard;
+import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +26,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JdbcCheckoutServiceTest {
+
+    @BeforeAll
+    static void verifyTestDatabase()
+            throws Exception {
+
+        TestDatabaseGuard.assertUsingTestDatabase();
+    }
 
     @BeforeEach
     void cleanTestData() throws Exception {
