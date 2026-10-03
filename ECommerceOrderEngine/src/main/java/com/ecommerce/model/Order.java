@@ -1,7 +1,10 @@
 package com.ecommerce.model;
 
+import jakarta.persistence.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,17 +24,39 @@ import java.util.List;
  * <p>The class implements {@link Serializable} so orders can be
  * persisted using Java object serialization in Core Java V1.</p>
  */
-public final class Order implements Serializable {
+@Entity
+@Table(name = "orders")
+public  class Order implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final long id;
-    private final Customer customer;
-    private final List<OrderItem> items;
-    private final PaymentType paymentType;
-    private final LocalDateTime createdAt;
+    @Id
+    @Column(name = "id")
+    private  long id;
 
+    @ManyToOne
+    @JoinColumn(name="customer_id",nullable = false)
+    private  Customer customer;
+
+    @OneToMany(mappedBy = "order",
+                cascade = CascadeType.ALL,
+                orphanRemoval = true)
+    private  List<OrderItem> items = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name="payment_type" , nullable = false)
+    private  PaymentType paymentType;
+
+    @Column(name = "created_at" , nullable = false)
+    private  LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name="status" , nullable = false)
     private OrderStatus status;
+
+    protected Order(){
+
+    }
 
     /**
      * Creates an order with the supplied customer, items, and payment type.
@@ -48,6 +73,8 @@ public final class Order implements Serializable {
      *                                  items are null or empty,
      *                                  or payment type is null
      */
+
+
 
     public Order(
             long id,
@@ -110,12 +137,25 @@ public final class Order implements Serializable {
 
         this.id = id;
         this.customer = customer;
-        this.items = List.copyOf(items);
+        this.items = new ArrayList<>();
+        for(OrderItem item : items){
+            addItem(item);
+        }
         this.paymentType = paymentType;
         this.status = status;
         this.createdAt = createdAt;
     }
+    private void addItem(OrderItem item) {
 
+        if (item == null) {
+            throw new IllegalArgumentException(
+                    "Order item cannot be null"
+            );
+        }
+
+        item.assignOrder(this);
+        this.items.add(item);
+    }
     public long getId() {
         return id;
     }
@@ -125,15 +165,12 @@ public final class Order implements Serializable {
     }
 
     /**
-     * Returns the items contained in this order.
-     *
-     * <p>The returned list cannot be structurally modified because
-     * the order stores its items using {@link List#copyOf}.</p>
-     *
-     * @return unmodifiable list of order items
+     * Returns an unmodifiable copy of the order items so callers
+     * cannot directly modify the internal Hibernate-managed collection.
      */
+
     public List<OrderItem> getItems() {
-        return items;
+        return List.copyOf(items);
     }
 
     public PaymentType getPaymentType() {
@@ -286,5 +323,9 @@ public final class Order implements Serializable {
                     paymentType
             );
         }
+    }
+
+    void assignCustomer(Customer customer) {
+        this.customer = customer;
     }
 }

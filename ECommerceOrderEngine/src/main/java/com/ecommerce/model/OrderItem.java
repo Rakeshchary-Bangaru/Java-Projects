@@ -1,6 +1,10 @@
 package com.ecommerce.model;
 
+import jakarta.persistence.*;
+
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Represents an immutable product entry inside an order.
@@ -12,13 +16,35 @@ import java.io.Serializable;
  * <p>The class implements {@link Serializable} because Order objects
  * containing OrderItem instances can be persisted using Java serialization.</p>
  */
-public final class OrderItem implements Serializable {
+
+@Entity
+@Table(name = "order_items")
+public  class OrderItem implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final Product product;
-    private final int quantity;
-    private final double unitPrice;
+    @EmbeddedId
+    private OrderItemId id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("orderId")
+    @JoinColumn(name = "order_id",nullable = false)
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("productId")
+    @JoinColumn(name = "product_id" , nullable = false)
+    private  Product product;
+
+    @Column(name = "quantity" , nullable = false)
+    private  int quantity;
+
+    @Column(name = "unit_price" , nullable = false,precision = 10,scale = 2)
+    private BigDecimal unitPrice;
+
+    protected  OrderItem(){
+
+    }
 
     /**
      * Creates an order item for the specified product and quantity.
@@ -49,7 +75,7 @@ public final class OrderItem implements Serializable {
         this.quantity = quantity;
 
         // Capture the purchase-time price so historical order totals remain stable.
-        this.unitPrice = product.getPrice();
+        this.unitPrice = BigDecimal.valueOf(product.getPrice()).setScale(2, RoundingMode.HALF_UP);
     }
 
     public Product getProduct() {
@@ -61,7 +87,7 @@ public final class OrderItem implements Serializable {
     }
 
     public double getUnitPrice() {
-        return unitPrice;
+        return unitPrice.doubleValue();
     }
 
     /**
@@ -71,6 +97,15 @@ public final class OrderItem implements Serializable {
      * @return unit price multiplied by quantity
      */
     public double getSubtotal() {
-        return unitPrice * quantity;
+        return unitPrice.doubleValue() * quantity;
+    }
+
+    void  assignOrder(Order order){
+        if(order == null){
+            throw new IllegalArgumentException("Order cannot be null");
+        }
+
+        this.order = order;
+        this.id = new OrderItemId(order.getId(), product.getId());
     }
 }

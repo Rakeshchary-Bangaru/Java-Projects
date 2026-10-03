@@ -1,6 +1,10 @@
 package com.ecommerce.model;
 
+import jakarta.persistence.*;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents a customer in the e-commerce system.
@@ -11,13 +15,29 @@ import java.io.Serializable;
  * <p>The class implements {@link Serializable} so customer information
  * can be included when an {@link Order} is serialized.</p>
  */
-public final class Customer implements Serializable {
+
+@Entity
+@Table(name = "customers")
+public  class Customer implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final long id;
-    private final String name;
+    @Id
+    @Column(name = "id")
+    private  long id;
+
+    @Column(name = "name" , nullable = false)
+    private  String name;
+
+    @Column(name="email" , nullable = false,unique = true)
     private String email;
+
+    @OneToMany(mappedBy = "customer")
+    private List<Order> orders = new ArrayList<>();
+
+    protected Customer(){
+
+    }
 
     /**
      * Creates a customer with the specified identifier, name, and email.
@@ -66,6 +86,10 @@ public final class Customer implements Serializable {
         return email;
     }
 
+    public List<Order> getOrders() {
+        return List.copyOf(orders);
+    }
+
     /**
      * Updates the customer's email address.
      *
@@ -81,5 +105,17 @@ public final class Customer implements Serializable {
         }
 
         this.email = newEmail;
+    }
+
+    public void addOrder(Order order) {
+
+        if (order == null) {
+            throw new IllegalArgumentException(
+                    "Order cannot be null"
+            );
+        }
+
+        orders.add(order);
+        order.assignCustomer(this);
     }
 }
