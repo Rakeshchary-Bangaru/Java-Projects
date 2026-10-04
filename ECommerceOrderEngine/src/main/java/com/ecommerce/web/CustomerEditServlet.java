@@ -2,7 +2,7 @@ package com.ecommerce.web;
 
 import com.ecommerce.model.Customer;
 import com.ecommerce.repository.CustomerRepository;
-import com.ecommerce.repository.JdbcCustomerRepository;
+import com.ecommerce.repository.HibernateCustomerRepository;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,7 +20,7 @@ public class CustomerEditServlet extends HttpServlet{
 
     @Override
     public void init(){
-        customerRepository = new JdbcCustomerRepository();
+        customerRepository = new HibernateCustomerRepository();
     }
 
     @Override

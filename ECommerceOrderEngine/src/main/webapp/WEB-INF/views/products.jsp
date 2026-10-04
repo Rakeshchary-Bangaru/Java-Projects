@@ -116,9 +116,15 @@
         </c:otherwise>
 
     </c:choose>
-
+    <br>
+<a href="${pageContext.request.contextPath}/products/new">
+    <button type="button">
+        Add Product
+    </button>
+</a>
 
 </div>
+
 
 
 </body>
