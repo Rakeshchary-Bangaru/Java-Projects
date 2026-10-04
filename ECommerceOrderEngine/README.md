@@ -4,13 +4,14 @@
 
 `ECommerceOrderEngine` is a Java-based e-commerce backend project designed to demonstrate the progressive development of an order-processing system from Core Java to database-backed application architecture.
 
-The project currently contains three major versions:
+The project currently contains four major versions:
 
 - **V1 – Core Java:** In-memory inventory, payment strategies, concurrent checkout processing, notifications, analytics, file persistence, and serialization.
 - **V2 – Maven + JDBC + MySQL:** Relational database persistence, repository pattern, JDBC transactions, atomic inventory reservation, rollback handling, and database-level concurrency control.
 - **V3 – Servlets + JSP + Tomcat:** Server-rendered web application with Product and Customer CRUD, session-based cart management, transactional checkout, order and inventory views, JSTL/EL, friendly error handling, shared navigation/CSS, and isolated development/test databases.
+- **V4 – Hibernate + JPA:** Replaces the active JDBC persistence layer with Hibernate/JPA entity mappings and Hibernate repository implementations while preserving the existing Servlet/JSP web application, atomic stock reservation, checkout transactions, and rollback guarantees.
 
-The project focuses on object-oriented design, SOLID principles, design patterns, concurrency, database programming, transaction management, exception handling, and automated testing.
+The project focuses on object-oriented design, SOLID principles, design patterns, concurrency, database programming, ORM/JPA, transaction management, exception handling, layered architecture, and automated testing.
 
 ---
 
@@ -518,17 +519,20 @@ mvn test
 Current automated test status:
 
 ```text
-Tests: 206
+Tests: 214
 Failures: 0
 Errors: 0
+Skipped: 0
 ```
 
 The test suite runs against the isolated `ecommerce_test_db` and includes:
 
 ```text
 Unit tests
-Repository integration tests
+JDBC repository integration tests
+Hibernate repository integration tests
 Database transaction tests
+Hibernate transaction tests
 Rollback tests
 Inventory concurrency tests
 Concurrent checkout tests
@@ -543,12 +547,20 @@ Insufficient stock tests
 ```text
 Maven
 JDBC
+Hibernate ORM
+JPA
+HQL
 MySQL
 PreparedStatement
 ResultSet
 Optional
 Repository Pattern
 CRUD
+Entity Mapping
+Persistence Context
+Dirty Checking
+Entity Relationships
+Composite Keys
 SQL JOINs
 Foreign Keys
 Database Constraints
@@ -575,6 +587,7 @@ Apache Tomcat
 MVC-style Web Layer
 Friendly HTTP Error Handling
 Development/Test Database Isolation
+Hibernate Test Database Isolation
 ```
 
 ---
@@ -927,13 +940,346 @@ http://localhost:8080/ecommerce/products
 
 ---
 
+
+# V4 – Hibernate + JPA
+
+V4 migrates the active persistence layer from direct JDBC repository implementations to Hibernate ORM using Jakarta Persistence (JPA) mappings.
+
+The existing Servlet/JSP web layer is retained. Repository interfaces remain the boundary between the web/business layers and persistence, while Hibernate implementations now provide the runtime database access.
+
+## V4 Goals
+
+- Preserve all V3 application behavior
+- Replace active JDBC persistence wiring with Hibernate/JPA
+- Keep the existing MySQL schema
+- Preserve atomic inventory reservation
+- Preserve checkout commit/rollback guarantees
+- Avoid overselling during concurrent checkout
+- Keep historical order pricing stable
+- Maintain development/test database isolation
+- Add Hibernate-specific integration tests
+- Prepare the codebase for Spring and Spring Boot
+
+## Hibernate/JPA Entity Model
+
+The following existing domain concepts are mapped as JPA entities:
+
+```text
+Product
+Customer
+Order
+OrderItem
+Inventory
+Payment
+```
+
+`OrderItem` uses a composite embedded key:
+
+```text
+OrderItemId
+├── orderId
+└── productId
+```
+
+Main relationships:
+
+```text
+Customer  1 ───── * Order
+Order     1 ───── * OrderItem
+Product   1 ───── * OrderItem
+Product   1 ───── 1 Inventory
+Order     1 ───── * Payment
+```
+
+`OrderItem` remains an explicit association entity rather than a direct many-to-many mapping because each purchased item stores both quantity and historical unit price.
+
+## Hibernate Configuration
+
+Hibernate configuration is stored in:
+
+```text
+src/main/resources/hibernate.cfg.xml
+```
+
+The project uses Hibernate ORM 6.6.58.Final with Java 21 and MySQL 8.4.x.
+
+Schema handling uses:
+
+```xml
+<property name="hibernate.hbm2ddl.auto">
+    validate
+</property>
+```
+
+Hibernate therefore validates the existing schema instead of creating, dropping, or automatically changing tables.
+
+`HibernateUtil` injects the database password from `ECOMMERCE_DB_PASSWORD` and supports `ECOMMERCE_DB_URL` and `ECOMMERCE_DB_USER` overrides. This lets Tomcat use `ecommerce_db` while Maven/JUnit Hibernate tests use `ecommerce_test_db`.
+
+## V4 Repository Architecture
+
+```text
+ProductRepository
+├── JdbcProductRepository
+└── HibernateProductRepository
+
+CustomerRepository
+├── JdbcCustomerRepository
+└── HibernateCustomerRepository
+
+InventoryRepository
+├── JdbcInventoryRepository
+└── HibernateInventoryRepository
+
+OrderRepository
+├── JdbcOrderRepository
+└── HibernateOrderRepository
+
+PaymentRepository
+├── JdbcPaymentRepository
+└── HibernatePaymentRepository
+```
+
+The JDBC implementations remain in the project as the V2/V3 implementation. The active V4 web application is wired to the Hibernate implementations.
+
+## V4 Web Architecture
+
+```text
+Browser
+   |
+   v
+Apache Tomcat
+   |
+   v
+Servlets
+   |
+   +--------------------+
+   |                    |
+   v                    v
+JSP + JSTL + EL     Application Services
+                         |
+                         v
+                HibernateCheckoutService
+                         |
+             +-----------+-----------+
+             |           |           |
+             v           v           v
+        InventoryRepo  OrderRepo  PaymentRepo
+             |           |           |
+             +-----------+-----------+
+                         |
+                         v
+                 Hibernate / JPA
+                         |
+                         v
+                       JDBC
+                         |
+                         v
+                       MySQL
+```
+
+The web layer no longer instantiates JDBC repository implementations.
+
+## Hibernate Checkout Transaction
+
+`HibernateCheckoutService` preserves the same transaction guarantees introduced in V2.
+
+Instead of sharing one JDBC `Connection`, V4 shares one Hibernate `Session` and one Hibernate `Transaction` across the complete checkout.
+
+```text
+BEGIN TRANSACTION
+       |
+       v
+Reserve Inventory
+       |
+       v
+Calculate Total
+       |
+       v
+Process Payment
+       |
+       v
+Create Order
+       |
+       v
+Persist Order + OrderItems
+       |
+       v
+Persist Payment
+       |
+       v
+COMMIT
+```
+
+If any step fails:
+
+```text
+Failure
+   |
+   v
+ROLLBACK
+   |
+   +--> Inventory reservation reversed
+   +--> Order not committed
+   +--> Order items not committed
+   +--> Payment not committed
+```
+
+## Atomic Inventory Reservation
+
+V4 preserves the concurrency-safe conditional stock update:
+
+```sql
+UPDATE inventory
+SET quantity = quantity - ?
+WHERE product_id = ?
+  AND quantity >= ?;
+```
+
+A failed reservation affects zero rows, so checkout can reject the request without overselling inventory.
+
+## Order Loading and Historical Pricing
+
+The Hibernate order repository loads the data required by the web layer before closing its `Session`:
+
+```text
+Order
+├── Customer
+└── OrderItems
+    └── Product
+```
+
+Historical pricing remains stored in `OrderItem.unitPrice`, while `Product.price` represents the current catalog price.
+
+## Payment Persistence
+
+V4 maps `payments` as a dedicated `Payment` entity.
+
+```text
+Order 1 ───── * Payment
+```
+
+The repository supports saving payment attempts, retrieving all attempts for an order, and retrieving the latest payment attempt.
+
+## Persistence Concepts Demonstrated
+
+```text
+SessionFactory
+Session
+Transaction
+Persistence Context
+First-Level Cache
+Transient / Managed / Detached Entities
+persist()
+find()
+merge()
+remove()
+flush()
+Dirty Checking
+HQL
+Fetch Joins
+Lazy Relationships
+Embedded Composite Keys
+@MapsId
+@ManyToOne
+@OneToMany
+@OneToOne
+@Enumerated
+```
+
+## V4 Testing
+
+V4 adds Hibernate integration coverage without removing the existing JDBC tests.
+
+New Hibernate test classes:
+
+```text
+HibernateProductRepositoryTest
+HibernateCustomerRepositoryTest
+HibernateInventoryRepositoryTest
+HibernateOrderRepositoryTest
+HibernatePaymentRepositoryTest
+HibernateCheckoutServiceTest
+```
+
+The Hibernate checkout tests verify:
+
+```text
+Successful checkout
+→ stock reduced
+→ order persisted
+→ payment persisted
+
+Insufficient stock
+→ checkout rejected
+→ stock unchanged
+→ no order
+→ no payment
+
+Payment failure
+→ inventory reservation rolled back
+→ no order
+→ no payment
+```
+
+Current complete automated test status:
+
+```text
+Tests: 214
+Failures: 0
+Errors: 0
+Skipped: 0
+```
+
+All automated database tests run against `ecommerce_test_db`, while the normal Tomcat application uses `ecommerce_db`.
+
+## Running V4 Locally
+
+Build:
+
+```bash
+mvn clean package
+```
+
+WAR:
+
+```text
+target/ecommerce-order-engine-4.0-SNAPSHOT.war
+```
+
+Set the database password:
+
+```bash
+read -s "ECOMMERCE_DB_PASSWORD?MySQL password: "
+export ECOMMERCE_DB_PASSWORD
+```
+
+Deploy:
+
+```bash
+rm -rf "$CATALINA_HOME/webapps/ecommerce"
+rm -f "$CATALINA_HOME/webapps/ecommerce.war"
+
+cp target/ecommerce-order-engine-4.0-SNAPSHOT.war \
+   "$CATALINA_HOME/webapps/ecommerce.war"
+
+"$CATALINA_HOME/bin/startup.sh"
+```
+
+Open:
+
+```text
+http://localhost:8080/ecommerce/products
+```
+
+V4 preserves the V3 browser flows for Product CRUD, Customer CRUD, Inventory, session-based Cart operations, Checkout, Order history, and Order details. The active persistence path now runs through Hibernate/JPA instead of direct JDBC repository implementations.
+
+---
+
 ## Future Improvements
 
 Future versions of the project will progressively introduce:
 
 ```text
-Hibernate
-JPA
 Spring Core
 Spring Boot
 REST APIs
@@ -950,10 +1296,10 @@ CI/CD
 Other technical improvements may include:
 
 ```text
-BigDecimal for monetary values
-Connection pooling
-Optimized order fetching
-Improved transaction abstraction
+Complete BigDecimal migration across public monetary APIs
+Production-grade connection pooling
+Further query/fetch optimization
+Spring-managed transaction abstraction
 External payment idempotency
 Outbox / Saga patterns
 Testcontainers
@@ -964,11 +1310,11 @@ Testcontainers
 ## Version Roadmap
 
 ```text
-V1  Core Java                  
-V2  Maven + JDBC + MySQL         
-V3  Servlets + JSP + Tomcat
-V4  Hibernate + JPA           
-V5  Spring Core + Spring Boot
+V1  Core Java                         
+V2  Maven + JDBC + MySQL                
+V3  Servlets + JSP + Tomcat             
+V4  Hibernate + JPA                    
+V5  Spring Core + Spring Boot           
 V6  REST APIs + Spring Data JPA
 V7  Spring Security
 V8  Advanced Integration Testing
