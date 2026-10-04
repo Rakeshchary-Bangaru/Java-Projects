@@ -1,8 +1,9 @@
 package com.ecommerce.web;
 
 import com.ecommerce.model.Product;
-import com.ecommerce.repository.JdbcInventoryRepository;
-import com.ecommerce.repository.JdbcProductRepository;
+import com.ecommerce.repository.HibernateInventoryRepository;
+import com.ecommerce.repository.HibernateProductRepository;
+import com.ecommerce.repository.InventoryRepository;
 import com.ecommerce.repository.ProductRepository;
 
 import jakarta.servlet.ServletException;
@@ -27,8 +28,7 @@ import java.util.Map;
 public class InventoryServlet extends HttpServlet {
 
     private ProductRepository productRepository;
-    private JdbcInventoryRepository inventoryRepository;
-
+    private InventoryRepository inventoryRepository;
     /**
      * Initializes the repositories when Tomcat creates this servlet.
      */
@@ -36,10 +36,10 @@ public class InventoryServlet extends HttpServlet {
     public void init() {
 
         productRepository =
-                new JdbcProductRepository();
+                new HibernateProductRepository();
 
         inventoryRepository =
-                new JdbcInventoryRepository();
+                new HibernateInventoryRepository();
     }
 
     /**

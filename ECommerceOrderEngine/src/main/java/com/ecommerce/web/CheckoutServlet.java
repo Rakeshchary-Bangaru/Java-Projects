@@ -1,6 +1,6 @@
 package com.ecommerce.web;
 
-import com.ecommerce.checkout.JdbcCheckoutService;
+import com.ecommerce.checkout.HibernateCheckoutService;
 import com.ecommerce.exception.InsufficientStockException;
 import com.ecommerce.exception.PaymentFailedException;
 import com.ecommerce.model.Cart;
@@ -8,10 +8,10 @@ import com.ecommerce.model.Customer;
 import com.ecommerce.model.Order;
 import com.ecommerce.model.PaymentType;
 import com.ecommerce.repository.CustomerRepository;
-import com.ecommerce.repository.JdbcCustomerRepository;
-import com.ecommerce.repository.JdbcInventoryRepository;
-import com.ecommerce.repository.JdbcOrderRepository;
-import com.ecommerce.repository.JdbcPaymentRepository;
+import com.ecommerce.repository.HibernateCustomerRepository;
+import com.ecommerce.repository.HibernateInventoryRepository;
+import com.ecommerce.repository.HibernateOrderRepository;
+import com.ecommerce.repository.HibernatePaymentRepository;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -31,7 +31,7 @@ import java.util.Optional;
  * <p>GET displays the checkout page using the cart stored in the
  * current HTTP session. POST validates the submitted customer and
  * payment type, then delegates the actual transactional checkout
- * workflow to {@link JdbcCheckoutService}.</p>
+ * workflow to {@link HibernateCheckoutService}.</p>
  *
  * <p>The servlet is responsible only for web-layer concerns such as
  * request parameters, session state, redirects, view forwarding,
@@ -43,7 +43,7 @@ import java.util.Optional;
 public class CheckoutServlet extends HttpServlet {
 
     private CustomerRepository customerRepository;
-    private JdbcCheckoutService checkoutService;
+    private HibernateCheckoutService checkoutService;
 
     /**
      * Initializes repositories and the checkout service once when
@@ -53,13 +53,13 @@ public class CheckoutServlet extends HttpServlet {
     public void init() {
 
         customerRepository =
-                new JdbcCustomerRepository();
+                new HibernateCustomerRepository();
 
         checkoutService =
-                new JdbcCheckoutService(
-                        new JdbcInventoryRepository(),
-                        new JdbcOrderRepository(),
-                        new JdbcPaymentRepository()
+                new HibernateCheckoutService(
+                        new HibernateInventoryRepository(),
+                        new HibernateOrderRepository(),
+                        new HibernatePaymentRepository()
                 );
     }
 
@@ -128,7 +128,7 @@ public class CheckoutServlet extends HttpServlet {
      *
      * <p>The servlet collects the selected customer, payment method,
      * and session cart, then delegates the transaction to
-     * {@link JdbcCheckoutService}.</p>
+     * {@link HibernateCheckoutService}.</p>
      */
     @Override
     protected void doPost(

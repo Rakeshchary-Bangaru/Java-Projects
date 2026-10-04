@@ -1,7 +1,7 @@
 package com.ecommerce.web;
 
 import com.ecommerce.model.Order;
-import com.ecommerce.repository.JdbcOrderRepository;
+import com.ecommerce.repository.HibernateOrderRepository;
 import com.ecommerce.repository.OrderRepository;
 
 import jakarta.servlet.ServletException;
@@ -34,7 +34,7 @@ public class OrderServlet extends HttpServlet {
     @Override
     public void init() {
         orderRepository =
-                new JdbcOrderRepository();
+                new HibernateOrderRepository();
     }
 
     /**

@@ -2,7 +2,7 @@ package com.ecommerce.web;
 
 import com.ecommerce.model.Cart;
 import com.ecommerce.model.Product;
-import com.ecommerce.repository.JdbcProductRepository;
+import com.ecommerce.repository.HibernateProductRepository;
 import com.ecommerce.repository.ProductRepository;
 
 import jakarta.servlet.ServletException;
@@ -33,7 +33,7 @@ public class CartAddServlet extends HttpServlet {
      */
     @Override
     public void init() {
-        productRepository = new JdbcProductRepository();
+        productRepository = new HibernateProductRepository();
     }
 
     /**

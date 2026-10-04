@@ -1,7 +1,8 @@
 package com.ecommerce.web;
 
-import com.ecommerce.repository.JdbcInventoryRepository;
+import com.ecommerce.repository.HibernateInventoryRepository;
 
+import com.ecommerce.repository.InventoryRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,13 +15,13 @@ import java.sql.SQLException;
 @WebServlet("/inventory/add")
 public class InventoryAddServlet extends HttpServlet {
 
-    private JdbcInventoryRepository inventoryRepository;
+    private InventoryRepository inventoryRepository;
 
     @Override
     public void init() {
 
         inventoryRepository =
-                new JdbcInventoryRepository();
+                new HibernateInventoryRepository();
     }
 
     @Override
