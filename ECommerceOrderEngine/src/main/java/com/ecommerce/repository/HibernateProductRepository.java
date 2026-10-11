@@ -2,7 +2,7 @@ package com.ecommerce.repository;
 
 import com.ecommerce.database.HibernateUtil;
 import com.ecommerce.model.Product;
-
+import org.springframework.stereotype.Repository;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -10,7 +10,7 @@ import org.hibernate.Transaction;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
-
+@Repository
 public final class HibernateProductRepository implements ProductRepository{
 
     @Override

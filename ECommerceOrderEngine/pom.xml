@@ -10,15 +10,16 @@
 
     <groupId>com.ecommerce</groupId>
     <artifactId>ecommerce-order-engine</artifactId>
-    <version>4.0-SNAPSHOT</version>
+    <version>5.0-SNAPSHOT</version>
 
-    <!-- V3 is deployed to Tomcat as a web application -->
-    <packaging>war</packaging>
+    <!-- V5 continues to use WAR packaging while Spring Core is introduced -->    <packaging>war</packaging>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.4</junit.version>
+
+        <spring.version>7.0.9</spring.version>
     </properties>
 
     <dependencies>
@@ -58,6 +59,13 @@
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
             <version>3.0.1</version>
+        </dependency>
+
+        <!-- Spring Core Container / Dependency Injection -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
         </dependency>
 
         <!-- Hibernate ORM -->

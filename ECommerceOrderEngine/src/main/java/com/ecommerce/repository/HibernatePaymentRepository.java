@@ -8,11 +8,13 @@ import com.ecommerce.payment.PaymentResult;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public final class HibernatePaymentRepository
         implements PaymentRepository {
 

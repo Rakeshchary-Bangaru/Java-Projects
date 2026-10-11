@@ -13,6 +13,8 @@ import com.ecommerce.model.PaymentType;
 import com.ecommerce.payment.PaymentFactory;
 import com.ecommerce.payment.PaymentProcessor;
 import com.ecommerce.payment.PaymentResult;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import com.ecommerce.repository.HibernateInventoryRepository;
 import com.ecommerce.repository.HibernateOrderRepository;
 import com.ecommerce.repository.HibernatePaymentRepository;
@@ -24,6 +26,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.function.Function;
 
+@Service
 public final class HibernateCheckoutService {
 
     private final HibernateInventoryRepository inventoryRepository;
@@ -39,7 +42,7 @@ public final class HibernateCheckoutService {
     private final Function<PaymentType, PaymentProcessor>
             paymentProcessorFactory;
 
-
+    @Autowired
     public HibernateCheckoutService(
             HibernateInventoryRepository inventoryRepository,
             HibernateOrderRepository orderRepository,

@@ -5,9 +5,11 @@ import com.ecommerce.database.HibernateUtil;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 
+@Repository
 public final class HibernateInventoryRepository implements InventoryRepository{
 
     @Override
