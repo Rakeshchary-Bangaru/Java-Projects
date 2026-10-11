@@ -7,11 +7,16 @@
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.1</version>
+        <relativePath/>
+    </parent>
 
     <groupId>com.ecommerce</groupId>
     <artifactId>ecommerce-order-engine</artifactId>
-    <version>5.0-SNAPSHOT</version>
-
+    <version>6.0-SNAPSHOT</version>
     <!-- V5 continues to use WAR packaging while Spring Core is introduced -->    <packaging>war</packaging>
 
     <properties>
@@ -19,7 +24,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.4</junit.version>
 
-        <spring.version>7.0.9</spring.version>
+
     </properties>
 
     <dependencies>
@@ -61,11 +66,10 @@
             <version>3.0.1</version>
         </dependency>
 
-        <!-- Spring Core Container / Dependency Injection -->
+        <!-- Spring Boot Core -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Hibernate ORM -->
@@ -113,6 +117,10 @@
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
         </plugins>

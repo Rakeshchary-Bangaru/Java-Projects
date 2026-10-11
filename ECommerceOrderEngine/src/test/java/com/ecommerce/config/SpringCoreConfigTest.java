@@ -1,5 +1,6 @@
 package com.ecommerce.config;
 
+import com.ecommerce.EcommerceApplication;
 import com.ecommerce.checkout.HibernateCheckoutService;
 import com.ecommerce.repository.HibernateProductRepository;
 import com.ecommerce.repository.ProductRepository;
@@ -18,7 +19,7 @@ class SpringCoreConfigTest {
 
         try (AnnotationConfigApplicationContext context =
                      new AnnotationConfigApplicationContext(
-                             AppConfig.class
+                             EcommerceApplication.class
                      )) {
 
             ProductRepository repository =
