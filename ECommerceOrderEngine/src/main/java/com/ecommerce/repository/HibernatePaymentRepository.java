@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public final class HibernatePaymentRepository
+public  class HibernatePaymentRepository
         implements PaymentRepository {
 
     @Override

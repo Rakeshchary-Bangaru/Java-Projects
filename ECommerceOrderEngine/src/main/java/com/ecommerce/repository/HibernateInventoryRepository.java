@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.SQLException;
 
 @Repository
-public final class HibernateInventoryRepository implements InventoryRepository{
+public  class HibernateInventoryRepository implements InventoryRepository{
 
     @Override
     public void addStock(long productId, int quantity) throws SQLException {

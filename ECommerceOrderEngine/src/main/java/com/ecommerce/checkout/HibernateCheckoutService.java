@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @Service
-public final class HibernateCheckoutService {
+public  class HibernateCheckoutService {
 
     private final HibernateInventoryRepository inventoryRepository;
     private final HibernateOrderRepository orderRepository;

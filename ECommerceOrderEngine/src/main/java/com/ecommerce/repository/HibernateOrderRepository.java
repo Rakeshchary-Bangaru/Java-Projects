@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public final class HibernateOrderRepository implements OrderRepository{
+public  class HibernateOrderRepository implements OrderRepository{
 
     @Override
     public void save(Order order) throws SQLException {

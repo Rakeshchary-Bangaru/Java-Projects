@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public final class HibernateCustomerRepository
+public  class HibernateCustomerRepository
         implements CustomerRepository {
 
     @Override
