@@ -62,7 +62,7 @@ public  class Product implements Serializable {
     protected Product(){
 
     }
-    public Product(long id, String name, String category, double price) {
+    public Product(long id, String name, String category, BigDecimal price) {
 
         if (id <= 0) {
             throw new IllegalArgumentException(
@@ -82,7 +82,9 @@ public  class Product implements Serializable {
             );
         }
 
-        if (price  <= 0) {
+        if (price == null ||
+                price.compareTo(BigDecimal.ZERO) <= 0) {
+
             throw new IllegalArgumentException(
                     "Product price must be greater than zero"
             );
@@ -91,9 +93,28 @@ public  class Product implements Serializable {
         this.id = id;
         this.name = name;
         this.category = category;
-        this.price = BigDecimal.valueOf(price)
-                .setScale(2, RoundingMode.HALF_UP);;
+        this.price =
+                price.setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                );
     }
+
+    // Compatibility constructor for older versions/tests
+    public Product(
+            long id,
+            String name,
+            String category,
+            double price) {
+
+        this(
+                id,
+                name,
+                category,
+                BigDecimal.valueOf(price)
+        );
+    }
+
 
     public long getId() {
         return id;
@@ -111,6 +132,7 @@ public  class Product implements Serializable {
         return price.doubleValue();
     }
 
+
     public BigDecimal getPriceAmount() {
         return price;
     }
@@ -121,14 +143,29 @@ public  class Product implements Serializable {
      * @param newPrice new product price
      * @throws IllegalArgumentException if the new price is not greater than zero
      */
-    public void updatePrice(double newPrice) {
+    public void updatePrice(BigDecimal newPrice) {
 
-        if (newPrice  <= 0) {
+        if (newPrice == null ||
+                newPrice.compareTo(BigDecimal.ZERO) <= 0) {
+
             throw new IllegalArgumentException(
                     "Price must be greater than zero"
             );
         }
 
-        this.price = BigDecimal.valueOf(newPrice).setScale(2,RoundingMode.HALF_UP);
+        this.price =
+                newPrice.setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                );
+    }
+
+    // Keep temporarily for old code
+    public void updatePrice(
+            double price) {
+
+        updatePrice(
+                BigDecimal.valueOf(price)
+        );
     }
 }

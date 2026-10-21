@@ -8,7 +8,9 @@ import com.ecommerce.service.ProductService;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,10 +19,21 @@ class SpringCoreConfigTest {
     @Test
     void shouldCreateAndInjectSpringBeans() {
 
-        try (AnnotationConfigApplicationContext context =
-                     new AnnotationConfigApplicationContext(
-                             EcommerceApplication.class
-                     )) {
+        SpringApplication application =
+                new SpringApplication(
+                        EcommerceApplication.class
+                );
+
+        /*
+         * We only want to test Spring bean creation here.
+         * No embedded Tomcat needs to start.
+         */
+        application.setWebApplicationType(
+                WebApplicationType.NONE
+        );
+
+        try (ConfigurableApplicationContext context =
+                     application.run()) {
 
             ProductRepository repository =
                     context.getBean(
@@ -37,7 +50,9 @@ class SpringCoreConfigTest {
                             HibernateCheckoutService.class
                     );
 
+
             assertNotNull(checkoutService);
+
             assertNotNull(repository);
 
             assertInstanceOf(
