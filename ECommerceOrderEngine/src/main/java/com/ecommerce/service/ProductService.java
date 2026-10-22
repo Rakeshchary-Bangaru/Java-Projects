@@ -1,5 +1,6 @@
 package com.ecommerce.service;
 
+import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.model.Product;
 import com.ecommerce.repository.SpringDataProductRepository;
 import org.springframework.stereotype.Service;
@@ -56,7 +57,6 @@ public class ProductService {
 
         productRepository.deleteById(id);
     }
-
     @Transactional
     public Product replace(
             long id,
@@ -65,7 +65,7 @@ public class ProductService {
             BigDecimal price) {
 
         if (!productRepository.existsById(id)) {
-            throw new IllegalArgumentException(
+            throw new ResourceNotFoundException(
                     "Product not found: " + id
             );
         }
@@ -81,6 +81,7 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+
     @Transactional
     public Product updatePrice(
             long id,
@@ -90,7 +91,7 @@ public class ProductService {
                 productRepository
                         .findById(id)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ResourceNotFoundException(
                                         "Product not found: " + id
                                 )
                         );
@@ -100,17 +101,17 @@ public class ProductService {
         return product;
     }
 
+
     @Transactional
-    public boolean delete(
+    public void deleteOrThrow(
             long id) {
 
         if (!productRepository.existsById(id)) {
-            return false;
+            throw new ResourceNotFoundException(
+                    "Product not found: " + id
+            );
         }
 
         productRepository.deleteById(id);
-
-        return true;
     }
-
 }

@@ -2,6 +2,7 @@ package com.ecommerce.controller;
 
 import com.ecommerce.dto.ProductPriceUpdateRequest;
 import com.ecommerce.dto.ProductResponse;
+import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.model.Product;
 import com.ecommerce.service.ProductService;
 
@@ -43,13 +44,18 @@ public class ProductController {
     public ResponseEntity<ProductResponse> getProductById(
             @PathVariable long id) {
 
-        return productService
-                .findById(id)
-                .map(this::toResponse)
-                .map(ResponseEntity::ok)
-                .orElseGet(() ->
-                        ResponseEntity.notFound().build()
-                );
+        Product product =
+                productService
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Product not found: " + id
+                                )
+                        );
+
+        return ResponseEntity.ok(
+                toResponse(product)
+        );
     }
 
 
@@ -77,10 +83,6 @@ public class ProductController {
             @PathVariable long id,
             @Valid @RequestBody ProductRequest request) {
 
-        if (productService.findById(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
         Product updatedProduct =
                 productService.replace(
                         id,
@@ -99,10 +101,6 @@ public class ProductController {
             @PathVariable long id,
             @Valid @RequestBody ProductPriceUpdateRequest request) {
 
-        if (productService.findById(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
         Product updatedProduct =
                 productService.updatePrice(
                         id,
@@ -118,16 +116,10 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(
             @PathVariable long id) {
 
-        boolean deleted =
-                productService.delete(id);
-
-        if (!deleted) {
-            return ResponseEntity.notFound().build();
-        }
+        productService.deleteOrThrow(id);
 
         return ResponseEntity.noContent().build();
     }
-
     private ProductResponse toResponse(
             Product product) {
 
