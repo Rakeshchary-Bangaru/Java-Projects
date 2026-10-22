@@ -1,23 +1,18 @@
 package com.ecommerce.controller;
 
+import com.ecommerce.dto.ProductPriceUpdateRequest;
 import com.ecommerce.dto.ProductResponse;
 import com.ecommerce.model.Product;
 import com.ecommerce.service.ProductService;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.ecommerce.dto.ProductRequest;
 
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
@@ -75,6 +70,62 @@ public class ProductController {
                 productService.save(product);
 
         return toResponse(savedProduct);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> replaceProduct(
+            @PathVariable long id,
+            @Valid @RequestBody ProductRequest request) {
+
+        if (productService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Product updatedProduct =
+                productService.replace(
+                        id,
+                        request.getName(),
+                        request.getCategory(),
+                        request.getPrice()
+                );
+
+        return ResponseEntity.ok(
+                toResponse(updatedProduct)
+        );
+    }
+
+    @PatchMapping("/{id}/price")
+    public ResponseEntity<ProductResponse> updateProductPrice(
+            @PathVariable long id,
+            @Valid @RequestBody ProductPriceUpdateRequest request) {
+
+        if (productService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Product updatedProduct =
+                productService.updatePrice(
+                        id,
+                        request.getPrice()
+                );
+
+        return ResponseEntity.ok(
+                toResponse(updatedProduct)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable long id) {
+
+        boolean deleted =
+                productService.delete(id);
+
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
     }
 
     private ProductResponse toResponse(

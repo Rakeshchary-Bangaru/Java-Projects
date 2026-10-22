@@ -3,7 +3,9 @@ package com.ecommerce.service;
 import com.ecommerce.model.Product;
 import com.ecommerce.repository.SpringDataProductRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,4 +56,61 @@ public class ProductService {
 
         productRepository.deleteById(id);
     }
+
+    @Transactional
+    public Product replace(
+            long id,
+            String name,
+            String category,
+            BigDecimal price) {
+
+        if (!productRepository.existsById(id)) {
+            throw new IllegalArgumentException(
+                    "Product not found: " + id
+            );
+        }
+
+        Product product =
+                new Product(
+                        id,
+                        name,
+                        category,
+                        price
+                );
+
+        return productRepository.save(product);
+    }
+
+    @Transactional
+    public Product updatePrice(
+            long id,
+            BigDecimal newPrice) {
+
+        Product product =
+                productRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Product not found: " + id
+                                )
+                        );
+
+        product.updatePrice(newPrice);
+
+        return product;
+    }
+
+    @Transactional
+    public boolean delete(
+            long id) {
+
+        if (!productRepository.existsById(id)) {
+            return false;
+        }
+
+        productRepository.deleteById(id);
+
+        return true;
+    }
+
 }
