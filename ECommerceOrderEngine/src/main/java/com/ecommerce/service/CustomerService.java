@@ -1,5 +1,6 @@
 package com.ecommerce.service;
 
+import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.model.Customer;
 import com.ecommerce.repository.SpringDataCustomerRepository;
 import org.springframework.stereotype.Service;
@@ -30,9 +31,17 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
-    public Optional<Customer> findById(long id) {
+    @Transactional(readOnly = true)
+    public Customer findByIdOrThrow(
+            long id) {
 
-        return customerRepository.findById(id);
+        return customerRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Customer not found: " + id
+                        )
+                );
     }
 
     public List<Customer> findAll() {
@@ -44,19 +53,17 @@ public class CustomerService {
 
         return customerRepository.findByEmail(email);
     }
-
     @Transactional
     public Customer updateEmail(
-            long customerId,
+            long id,
             String newEmail) {
 
         Customer customer =
                 customerRepository
-                        .findById(customerId)
+                        .findById(id)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Customer not found: "
-                                                + customerId
+                                new ResourceNotFoundException(
+                                        "Customer not found: " + id
                                 )
                         );
 
@@ -65,7 +72,38 @@ public class CustomerService {
         return customer;
     }
 
-    public void deleteById(long id) {
+    @Transactional
+    public Customer replace(
+            long id,
+            String name,
+            String email) {
+
+        Customer customer =
+                customerRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Customer not found: " + id
+                                )
+                        );
+
+        customer.updateDetails(
+                name,
+                email
+        );
+
+        return customer;
+    }
+
+    @Transactional
+    public void deleteOrThrow(
+            long id) {
+
+        if (!customerRepository.existsById(id)) {
+            throw new ResourceNotFoundException(
+                    "Customer not found: " + id
+            );
+        }
 
         customerRepository.deleteById(id);
     }

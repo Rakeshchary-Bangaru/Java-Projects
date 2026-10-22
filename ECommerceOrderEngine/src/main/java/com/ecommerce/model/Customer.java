@@ -107,6 +107,26 @@ public  class Customer implements Serializable {
         this.email = newEmail;
     }
 
+    public void updateDetails(
+            String name,
+            String email) {
+
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Customer name cannot be empty"
+            );
+        }
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Customer email cannot be empty"
+            );
+        }
+
+        this.name = name;
+        this.email = email;
+    }
+
     public void addOrder(Order order) {
 
         if (order == null) {
