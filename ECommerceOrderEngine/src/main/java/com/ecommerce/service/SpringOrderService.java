@@ -1,5 +1,6 @@
 package com.ecommerce.service;
 
+import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.model.Order;
 import com.ecommerce.model.OrderStatus;
 import com.ecommerce.repository.SpringDataOrderRepository;
@@ -36,9 +37,16 @@ public class SpringOrderService {
 
 
     @Transactional(readOnly = true)
-    public Optional<Order> findById(long id) {
+    public Order findByIdOrThrow(
+            long id) {
 
-        return orderRepository.findDetailedById(id);
+        return orderRepository
+                .findDetailedById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Order not found: " + id
+                        )
+                );
     }
 
 
@@ -64,7 +72,7 @@ public class SpringOrderService {
                 orderRepository
                         .findById(orderId)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ResourceNotFoundException(
                                         "Order not found: "
                                                 + orderId
                                 )
