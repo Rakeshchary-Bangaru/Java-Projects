@@ -11,6 +11,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.ecommerce.exception.InsufficientStockException;
+import com.ecommerce.exception.PaymentFailedException;
+
 import java.time.LocalDateTime;
 
 
@@ -91,6 +94,46 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .badRequest()
+                .body(response);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiErrorResponse>
+    handleInsufficientStock(
+            InsufficientStockException exception,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response =
+                new ApiErrorResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.CONFLICT.value(),
+                        "Insufficient Stock",
+                        exception.getMessage(),
+                        request.getRequestURI()
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+    }
+
+    @ExceptionHandler(PaymentFailedException.class)
+    public ResponseEntity<ApiErrorResponse>
+    handlePaymentFailure(
+            PaymentFailedException exception,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response =
+                new ApiErrorResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.PAYMENT_REQUIRED.value(),
+                        "Payment Failed",
+                        exception.getMessage(),
+                        request.getRequestURI()
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.PAYMENT_REQUIRED)
                 .body(response);
     }
 }

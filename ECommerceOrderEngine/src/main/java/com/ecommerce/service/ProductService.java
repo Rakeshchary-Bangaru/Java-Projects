@@ -32,9 +32,17 @@ public class ProductService {
         return productRepository.save(product);
     }
 
-    public Optional<Product> findById(long id) {
+    @Transactional(readOnly = true)
+    public Product findByIdOrThrow(
+            long id) {
 
-        return productRepository.findById(id);
+        return productRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Product not found: " + id
+                        )
+                );
     }
 
     public List<Product> findAll() {

@@ -46,12 +46,8 @@ public class ProductController {
 
         Product product =
                 productService
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Product not found: " + id
-                                )
-                        );
+                        .findByIdOrThrow(id);
+
 
         return ResponseEntity.ok(
                 toResponse(product)
