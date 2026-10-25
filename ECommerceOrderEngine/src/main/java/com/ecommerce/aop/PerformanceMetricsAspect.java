@@ -1,5 +1,8 @@
 package com.ecommerce.aop;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -22,6 +25,17 @@ public class PerformanceMetricsAspect {
 
     private static final long SLOW_METHOD_THRESHOLD_MS =
             500;
+
+
+    private final MeterRegistry meterRegistry;
+
+
+    public PerformanceMetricsAspect(
+            MeterRegistry meterRegistry) {
+
+        this.meterRegistry =
+                meterRegistry;
+    }
 
 
     @Around(
@@ -50,26 +64,67 @@ public class PerformanceMetricsAspect {
                 System.nanoTime();
 
 
+        String status =
+                "SUCCESS";
+
+
         try {
 
-            Object result =
-                    joinPoint.proceed();
+            return joinPoint.proceed();
+
+        } catch (Throwable exception) {
+
+            status =
+                    "FAILED";
+
+            throw exception;
+
+        } finally {
+
+            long durationNs =
+                    System.nanoTime()
+                            - startTime;
 
 
             long durationMs =
-                    (
-                            System.nanoTime()
-                                    - startTime
-                    )
+                    durationNs
                             / 1_000_000;
 
 
             log.info(
-                    "PERFORMANCE {}.{}() - {} ms - SUCCESS",
+                    "PERFORMANCE {}.{}() - {} ms - {}",
                     className,
                     methodName,
-                    durationMs
+                    durationMs,
+                    status
             );
+
+
+            Timer.builder(
+                            "ecommerce.method.execution"
+                    )
+                    .description(
+                            "Execution time of ecommerce service methods"
+                    )
+                    .tag(
+                            "class",
+                            className
+                    )
+                    .tag(
+                            "method",
+                            methodName
+                    )
+                    .tag(
+                            "status",
+                            status
+                    )
+                    .register(
+                            meterRegistry
+                    )
+                    .record(
+                            durationNs,
+                            java.util.concurrent.TimeUnit.NANOSECONDS
+                    );
 
 
             if (
@@ -84,30 +139,18 @@ public class PerformanceMetricsAspect {
                         durationMs,
                         SLOW_METHOD_THRESHOLD_MS
                 );
+
+
+                meterRegistry
+                        .counter(
+                                "ecommerce.method.slow",
+                                "class",
+                                className,
+                                "method",
+                                methodName
+                        )
+                        .increment();
             }
-
-
-            return result;
-
-        } catch (Throwable exception) {
-
-            long durationMs =
-                    (
-                            System.nanoTime()
-                                    - startTime
-                    )
-                            / 1_000_000;
-
-
-            log.error(
-                    "PERFORMANCE {}.{}() - {} ms - FAILED",
-                    className,
-                    methodName,
-                    durationMs
-            );
-
-
-            throw exception;
         }
     }
 }

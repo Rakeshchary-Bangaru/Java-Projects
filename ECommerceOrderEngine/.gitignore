@@ -36,3 +36,4 @@ target/
 
 ### Local dependency JARs ###
 lib/*.jar
+logs/
