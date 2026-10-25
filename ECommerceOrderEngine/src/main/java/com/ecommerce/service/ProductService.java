@@ -6,6 +6,8 @@ import com.ecommerce.repository.SpringDataProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ecommerce.audit.AuditAction;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +22,10 @@ public class ProductService {
 
         this.productRepository = productRepository;
     }
-
+    @AuditAction(
+            action = "PRODUCT_CREATED",
+            entity = "PRODUCT"
+    )
     public Product save(Product product) {
 
         if (product == null) {
@@ -65,6 +70,11 @@ public class ProductService {
 
         productRepository.deleteById(id);
     }
+
+    @AuditAction(
+            action = "PRODUCT_REPLACED",
+            entity = "PRODUCT"
+    )
     @Transactional
     public Product replace(
             long id,
@@ -89,7 +99,10 @@ public class ProductService {
         return productRepository.save(product);
     }
 
-
+    @AuditAction(
+            action = "PRODUCT_PRICE_UPDATED",
+            entity = "PRODUCT"
+    )
     @Transactional
     public Product updatePrice(
             long id,
@@ -109,7 +122,10 @@ public class ProductService {
         return product;
     }
 
-
+    @AuditAction(
+            action = "PRODUCT_DELETED",
+            entity = "PRODUCT"
+    )
     @Transactional
     public void deleteOrThrow(
             long id) {
