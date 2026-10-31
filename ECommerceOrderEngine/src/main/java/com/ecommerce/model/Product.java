@@ -38,6 +38,18 @@ public  class Product implements Serializable {
     @Column(name = "price" , nullable = false, precision = 10,scale = 2)
     private BigDecimal price;
 
+    @Column(name = "description", length = 2000)
+    private String description;
+
+    @Column(name = "brand", length = 120)
+    private String brand;
+
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
     /**
      * Creates a product with the specified identifier, name,
      * category, and price.
@@ -62,7 +74,39 @@ public  class Product implements Serializable {
     protected Product(){
 
     }
-    public Product(long id, String name, String category, BigDecimal price) {
+    public Product(
+            long id,
+            String name,
+            String category,
+            BigDecimal price) {
+
+        this(id, name, category, price, null, null, null, true);
+    }
+
+    // Compatibility constructor for older versions/tests
+    public Product(
+            long id,
+            String name,
+            String category,
+            double price) {
+
+        this(
+                id,
+                name,
+                category,
+                BigDecimal.valueOf(price)
+        );
+    }
+
+    public Product(
+            long id,
+            String name,
+            String category,
+            BigDecimal price,
+            String description,
+            String brand,
+            String imageUrl,
+            boolean active) {
 
         if (id <= 0) {
             throw new IllegalArgumentException(
@@ -93,28 +137,12 @@ public  class Product implements Serializable {
         this.id = id;
         this.name = name;
         this.category = category;
-        this.price =
-                price.setScale(
-                        2,
-                        RoundingMode.HALF_UP
-                );
+        this.price = price.setScale(2, RoundingMode.HALF_UP);
+        this.description = description;
+        this.brand = brand;
+        this.imageUrl = imageUrl;
+        this.active = active;
     }
-
-    // Compatibility constructor for older versions/tests
-    public Product(
-            long id,
-            String name,
-            String category,
-            double price) {
-
-        this(
-                id,
-                name,
-                category,
-                BigDecimal.valueOf(price)
-        );
-    }
-
 
     public long getId() {
         return id;
@@ -135,6 +163,22 @@ public  class Product implements Serializable {
 
     public BigDecimal getPriceAmount() {
         return price;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     /**
@@ -167,5 +211,12 @@ public  class Product implements Serializable {
         updatePrice(
                 BigDecimal.valueOf(price)
         );
+    }
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void activate() {
+        this.active = true;
     }
 }
