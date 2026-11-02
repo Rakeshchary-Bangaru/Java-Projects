@@ -455,4 +455,109 @@ class SpringOrderServiceTest {
                         orderId
                 );
     }
+
+    /*
+     * =========================================================
+     * findByCustomerId()
+     *
+     * Returns only the orders that belong to the supplied
+     * customer.
+     * =========================================================
+     */
+    @Test
+    void shouldReturnOrdersForCustomer() {
+
+        long customerId = 8101L;
+
+        Order order1 =
+                mock(Order.class);
+
+        Order order2 =
+                mock(Order.class);
+
+
+        List<Order> customerOrders =
+                List.of(
+                        order1,
+                        order2
+                );
+
+
+        when(
+                orderRepository
+                        .findDetailedByCustomerId(
+                                customerId
+                        )
+        )
+                .thenReturn(
+                        customerOrders
+                );
+
+
+        List<Order> result =
+                orderService.findByCustomerId(
+                        customerId
+                );
+
+
+        assertEquals(
+                2,
+                result.size()
+        );
+
+
+        assertSame(
+                order1,
+                result.get(0)
+        );
+
+
+        assertSame(
+                order2,
+                result.get(1)
+        );
+
+
+        verify(orderRepository)
+                .findDetailedByCustomerId(
+                        customerId
+                );
+    }
+
+
+    /*
+     * =========================================================
+     * findByCustomerId()
+     *
+     * Invalid customer ids must be rejected before the
+     * repository is called.
+     * =========================================================
+     */
+    @Test
+    void shouldRejectInvalidCustomerIdWhenFindingOrders() {
+
+        long customerId = 0L;
+
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                orderService
+                                        .findByCustomerId(
+                                                customerId
+                                        )
+                );
+
+
+        assertEquals(
+                "Customer id must be greater than zero",
+                exception.getMessage()
+        );
+
+
+        verifyNoInteractions(
+                orderRepository
+        );
+    }
 }

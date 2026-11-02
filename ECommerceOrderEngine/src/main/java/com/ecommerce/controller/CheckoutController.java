@@ -13,6 +13,10 @@ import com.ecommerce.model.Order;
 import com.ecommerce.model.OrderItem;
 import com.ecommerce.model.Product;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+
 import com.ecommerce.service.CustomerService;
 import com.ecommerce.service.ProductService;
 import com.ecommerce.service.SpringOrderService;
@@ -51,14 +55,47 @@ public class CheckoutController {
 
 
     @PostMapping
+    @PreAuthorize("hasAuthority('CHECKOUT_CREATE')")
     public ResponseEntity<OrderResponse> checkout(
             @Valid
-            @RequestBody CheckoutRequest request) {
+            @RequestBody CheckoutRequest request,
+            Authentication authentication) {
 
+        /*
+         * V7 SECURITY:
+         *
+         * Never trust a customerId supplied by the browser.
+         *
+         * The authenticated UserAccount id comes from the
+         * signed JWT created by our backend.
+         */
+        if (!(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new IllegalStateException(
+                    "Authenticated principal is not a JWT"
+            );
+        }
+
+        Number userIdClaim =
+                jwt.getClaim("userId");
+
+        if (userIdClaim == null) {
+            throw new IllegalStateException(
+                    "Authenticated token does not contain userId"
+            );
+        }
+
+        long userAccountId =
+                userIdClaim.longValue();
+
+        /*
+         * Resolve the Customer profile that belongs to the
+         * authenticated UserAccount.
+         */
         Customer customer =
-                customerService.findByIdOrThrow(
-                        request.getCustomerId()
-                );
+                customerService
+                        .findByUserAccountIdOrThrow(
+                                userAccountId
+                        );
 
 
         Cart cart = new Cart();

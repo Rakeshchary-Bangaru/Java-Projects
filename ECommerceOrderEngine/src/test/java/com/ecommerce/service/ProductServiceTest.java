@@ -3,14 +3,18 @@ package com.ecommerce.service;
 import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.model.Product;
 import com.ecommerce.repository.SpringDataProductRepository;
+import com.ecommerce.seller.repository.SellerRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,9 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 
@@ -33,6 +40,8 @@ class ProductServiceTest {
     @Mock
     private SpringDataProductRepository productRepository;
 
+    @Mock
+    private SellerRepository sellerRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -52,25 +61,41 @@ class ProductServiceTest {
                         new BigDecimal("75000.00")
                 );
 
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(
+                        "root@test.com",
+                        null,
+                        List.of(
+                                new SimpleGrantedAuthority(
+                                        "ROLE_ROOT"
+                                )
+                        )
+                );
 
         when(
                 productRepository.save(product)
-        )
-                .thenReturn(product);
-
+        ).thenReturn(product);
 
         Product result =
-                productService.save(product);
-
+                productService.save(
+                        product,
+                        authentication
+                );
 
         assertSame(
                 product,
                 result
         );
 
-
         verify(productRepository)
                 .save(product);
+
+        /*
+         * ROOT does not need a Seller profile.
+         */
+        verifyNoInteractions(
+                sellerRepository
+        );
     }
 
 
@@ -83,21 +108,28 @@ class ProductServiceTest {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
-                        () -> productService.save(null)
+                        () ->
+                                productService.save(
+                                        null,
+                                        null
+                                )
                 );
-
 
         assertEquals(
                 "Product cannot be null",
                 exception.getMessage()
         );
 
-
         verify(
                 productRepository,
                 never()
-        )
-                .save(any(Product.class));
+        ).save(
+                any(Product.class)
+        );
+
+        verifyNoInteractions(
+                sellerRepository
+        );
     }
 
 
@@ -109,7 +141,6 @@ class ProductServiceTest {
 
         long productId = 7001L;
 
-
         Product product =
                 new Product(
                         productId,
@@ -118,38 +149,31 @@ class ProductServiceTest {
                         new BigDecimal("75000.00")
                 );
 
-
         when(
                 productRepository.findById(productId)
-        )
-                .thenReturn(
-                        Optional.of(product)
-                );
-
+        ).thenReturn(
+                Optional.of(product)
+        );
 
         Product result =
                 productService.findByIdOrThrow(
                         productId
                 );
 
-
         assertSame(
                 product,
                 result
         );
-
 
         assertEquals(
                 7001L,
                 result.getId()
         );
 
-
         assertEquals(
                 "Laptop",
                 result.getName()
         );
-
 
         verify(productRepository)
                 .findById(productId);
@@ -164,14 +188,11 @@ class ProductServiceTest {
 
         long productId = 9999L;
 
-
         when(
                 productRepository.findById(productId)
-        )
-                .thenReturn(
-                        Optional.empty()
-                );
-
+        ).thenReturn(
+                Optional.empty()
+        );
 
         ResourceNotFoundException exception =
                 assertThrows(
@@ -183,12 +204,10 @@ class ProductServiceTest {
                                         )
                 );
 
-
         assertEquals(
                 "Product not found: 9999",
                 exception.getMessage()
         );
-
 
         verify(productRepository)
                 .findById(productId);
@@ -209,7 +228,6 @@ class ProductServiceTest {
                         new BigDecimal("75000.00")
                 );
 
-
         Product mouse =
                 new Product(
                         7401L,
@@ -218,41 +236,33 @@ class ProductServiceTest {
                         new BigDecimal("2500.00")
                 );
 
-
         List<Product> products =
                 List.of(
                         laptop,
                         mouse
                 );
 
-
         when(
                 productRepository.findAll()
-        )
-                .thenReturn(products);
-
+        ).thenReturn(products);
 
         List<Product> result =
                 productService.findAll();
-
 
         assertEquals(
                 2,
                 result.size()
         );
 
-
         assertEquals(
                 "Laptop",
                 result.get(0).getName()
         );
 
-
         assertEquals(
                 "Wireless Mouse",
                 result.get(1).getName()
         );
-
 
         verify(productRepository)
                 .findAll();
@@ -262,86 +272,10 @@ class ProductServiceTest {
     /*
      * update()
      */
-    @Test
-    void shouldUpdateProduct() {
-
-        Product product =
-                new Product(
-                        7001L,
-                        "Laptop",
-                        "Electronics",
-                        new BigDecimal("80000.00")
-                );
-
-
-        when(
-                productRepository.save(product)
-        )
-                .thenReturn(product);
-
-
-        Product result =
-                productService.update(product);
-
-
-        assertSame(
-                product,
-                result
-        );
-
-
-        verify(productRepository)
-                .save(product);
-    }
-
 
     /*
      * update(null)
      */
-    @Test
-    void shouldThrowExceptionWhenUpdatingNullProduct() {
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () ->
-                                productService.update(null)
-                );
-
-
-        assertEquals(
-                "Product cannot be null",
-                exception.getMessage()
-        );
-
-
-        verify(
-                productRepository,
-                never()
-        )
-                .save(any(Product.class));
-    }
-
-
-    /*
-     * deleteById()
-     */
-    @Test
-    void shouldDeleteProductById() {
-
-        long productId = 7001L;
-
-
-        productService.deleteById(
-                productId
-        );
-
-
-        verify(productRepository)
-                .deleteById(
-                        productId
-                );
-    }
 
 
     /*
@@ -352,105 +286,66 @@ class ProductServiceTest {
 
         long productId = 7001L;
 
-        BigDecimal newPrice =
-                new BigDecimal("82000.00");
-
-
-        when(
-                productRepository.existsById(productId)
-        )
-                .thenReturn(true);
-
-
-        when(
-                productRepository.save(
-                        any(Product.class)
-                )
-        )
-                .thenAnswer(
-                        invocation ->
-                                invocation.getArgument(0)
+        Product existingProduct =
+                new Product(
+                        productId,
+                        "Old Product",
+                        "Old Category",
+                        new BigDecimal("100.00")
                 );
 
+        when(
+                productRepository.findById(productId)
+        ).thenReturn(
+                Optional.of(existingProduct)
+        );
 
         Product result =
                 productService.replace(
                         productId,
-                        "Updated Laptop",
-                        "Computers",
-                        newPrice
+                        "Updated Product",
+                        "Electronics",
+                        new BigDecimal("250.00")
                 );
 
-
-        assertEquals(
-                productId,
-                result.getId()
+        assertSame(
+                existingProduct,
+                result
         );
 
-
         assertEquals(
-                "Updated Laptop",
+                "Updated Product",
                 result.getName()
         );
 
-
         assertEquals(
-                "Computers",
+                "Electronics",
                 result.getCategory()
         );
 
-
         assertEquals(
-                newPrice,
-                result.getPriceAmount()
+                0,
+                new BigDecimal("250.00")
+                        .compareTo(
+                                result.getPriceAmount()
+                        )
         );
-
 
         verify(productRepository)
-                .existsById(productId);
+                .findById(productId);
 
-
-        /*
-         * ArgumentCaptor lets us inspect the Product
-         * created inside ProductService.
-         */
-        ArgumentCaptor<Product> productCaptor =
-                ArgumentCaptor.forClass(
-                        Product.class
-                );
-
-
-        verify(productRepository)
-                .save(
-                        productCaptor.capture()
-                );
-
-
-        Product savedProduct =
-                productCaptor.getValue();
-
-
-        assertEquals(
-                productId,
-                savedProduct.getId()
+        verify(
+                productRepository,
+                never()
+        ).existsById(
+                anyLong()
         );
 
-
-        assertEquals(
-                "Updated Laptop",
-                savedProduct.getName()
-        );
-
-
-        assertEquals(
-                "Computers",
-                savedProduct.getCategory()
-        );
-
-
-        assertEquals(
-                newPrice,
-                savedProduct.getPriceAmount()
+        verify(
+                productRepository,
+                never()
+        ).save(
+                any(Product.class)
         );
     }
 
@@ -463,12 +358,11 @@ class ProductServiceTest {
 
         long productId = 9999L;
 
-
         when(
-                productRepository.existsById(productId)
-        )
-                .thenReturn(false);
-
+                productRepository.findById(productId)
+        ).thenReturn(
+                Optional.empty()
+        );
 
         ResourceNotFoundException exception =
                 assertThrows(
@@ -484,22 +378,25 @@ class ProductServiceTest {
                                 )
                 );
 
-
         assertEquals(
                 "Product not found: 9999",
                 exception.getMessage()
         );
 
-
         verify(productRepository)
-                .existsById(productId);
-
+                .findById(productId);
 
         verify(
                 productRepository,
                 never()
-        )
-                .save(any(Product.class));
+        ).existsById(productId);
+
+        verify(
+                productRepository,
+                never()
+        ).save(
+                any(Product.class)
+        );
     }
 
 
@@ -511,7 +408,6 @@ class ProductServiceTest {
 
         long productId = 7001L;
 
-
         Product product =
                 new Product(
                         productId,
@@ -520,18 +416,14 @@ class ProductServiceTest {
                         new BigDecimal("75000.00")
                 );
 
-
         BigDecimal newPrice =
                 new BigDecimal("85000.00");
 
-
         when(
                 productRepository.findById(productId)
-        )
-                .thenReturn(
-                        Optional.of(product)
-                );
-
+        ).thenReturn(
+                Optional.of(product)
+        );
 
         Product result =
                 productService.updatePrice(
@@ -539,18 +431,15 @@ class ProductServiceTest {
                         newPrice
                 );
 
-
         assertSame(
                 product,
                 result
         );
 
-
         assertEquals(
                 newPrice,
                 result.getPriceAmount()
         );
-
 
         verify(productRepository)
                 .findById(productId);
@@ -565,14 +454,11 @@ class ProductServiceTest {
 
         long productId = 9999L;
 
-
         when(
                 productRepository.findById(productId)
-        )
-                .thenReturn(
-                        Optional.empty()
-                );
-
+        ).thenReturn(
+                Optional.empty()
+        );
 
         ResourceNotFoundException exception =
                 assertThrows(
@@ -586,12 +472,10 @@ class ProductServiceTest {
                                 )
                 );
 
-
         assertEquals(
                 "Product not found: 9999",
                 exception.getMessage()
         );
-
 
         verify(productRepository)
                 .findById(productId);
@@ -606,21 +490,16 @@ class ProductServiceTest {
 
         long productId = 7001L;
 
-
         when(
                 productRepository.existsById(productId)
-        )
-                .thenReturn(true);
-
+        ).thenReturn(true);
 
         productService.deleteOrThrow(
                 productId
         );
 
-
         verify(productRepository)
                 .existsById(productId);
-
 
         verify(productRepository)
                 .deleteById(productId);
@@ -635,12 +514,9 @@ class ProductServiceTest {
 
         long productId = 9999L;
 
-
         when(
                 productRepository.existsById(productId)
-        )
-                .thenReturn(false);
-
+        ).thenReturn(false);
 
         ResourceNotFoundException exception =
                 assertThrows(
@@ -651,21 +527,17 @@ class ProductServiceTest {
                                 )
                 );
 
-
         assertEquals(
                 "Product not found: 9999",
                 exception.getMessage()
         );
 
-
         verify(productRepository)
                 .existsById(productId);
-
 
         verify(
                 productRepository,
                 never()
-        )
-                .deleteById(productId);
+        ).deleteById(productId);
     }
 }

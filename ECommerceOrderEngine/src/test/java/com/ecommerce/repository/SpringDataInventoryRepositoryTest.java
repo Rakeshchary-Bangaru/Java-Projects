@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.EcommerceApplication;
@@ -8,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,24 +27,44 @@ class SpringDataInventoryRepositoryTest {
     @Test
     void shouldPerformInventoryOperationsUsingSpringDataJpa() {
 
-        long productId = 990003L;
-
-        Product product =
-                new Product(
-                        productId,
-                        "Inventory Test Product",
-                        "Electronics",
-                        100.00
-                );
+        /*
+         * =====================================================
+         * CREATE PRODUCT
+         * =====================================================
+         *
+         * Product ID is generated automatically by MySQL.
+         * Do not manually assign an ID.
+         */
+        Product product = new Product(
+                "Inventory Test Product",
+                "Electronics",
+                new BigDecimal("100.00"),
+                "Product used for Spring Data inventory testing",
+                "TestBrand"
+        );
 
         /*
-         * Native inventory INSERT needs the Product row
-         * to already exist because product_id is also a FK.
+         * =====================================================
+         * SAVE PRODUCT
+         * =====================================================
+         *
+         * The inventory table references products.id.
+         * The Product row must exist before stock is inserted.
          */
-        productRepository.saveAndFlush(product);
+        Product savedProduct =
+                productRepository.saveAndFlush(product);
 
+        assertNotNull(savedProduct);
+        assertNotNull(savedProduct.getId());
+        assertTrue(savedProduct.getId() > 0);
 
-        // SET STOCK
+        long productId = savedProduct.getId();
+
+        /*
+         * =====================================================
+         * SET INITIAL STOCK
+         * =====================================================
+         */
         inventoryRepository.setStock(
                 productId,
                 5
@@ -54,8 +77,15 @@ class SpringDataInventoryRepositoryTest {
                         .orElseThrow()
         );
 
-
-        // ATOMIC RESERVATION
+        /*
+         * =====================================================
+         * SUCCESSFUL ATOMIC RESERVATION
+         * =====================================================
+         *
+         * Initial stock = 5
+         * Reserved quantity = 3
+         * Remaining stock = 2
+         */
         int reserved =
                 inventoryRepository.reserveStock(
                         productId,
@@ -71,8 +101,14 @@ class SpringDataInventoryRepositoryTest {
                         .orElseThrow()
         );
 
-
-        // INSUFFICIENT STOCK
+        /*
+         * =====================================================
+         * INSUFFICIENT STOCK
+         * =====================================================
+         *
+         * Only 2 items remain.
+         * Attempting to reserve 3 must fail.
+         */
         int failedReservation =
                 inventoryRepository.reserveStock(
                         productId,
@@ -84,6 +120,9 @@ class SpringDataInventoryRepositoryTest {
                 failedReservation
         );
 
+        /*
+         * Failed reservation must not change the inventory.
+         */
         assertEquals(
                 2,
                 inventoryRepository
@@ -91,8 +130,15 @@ class SpringDataInventoryRepositoryTest {
                         .orElseThrow()
         );
 
-
-        // RELEASE STOCK
+        /*
+         * =====================================================
+         * RELEASE STOCK
+         * =====================================================
+         *
+         * Current stock = 2
+         * Released quantity = 2
+         * New stock = 4
+         */
         inventoryRepository.releaseStock(
                 productId,
                 2
@@ -105,8 +151,15 @@ class SpringDataInventoryRepositoryTest {
                         .orElseThrow()
         );
 
-
-        // ADD STOCK
+        /*
+         * =====================================================
+         * ADD STOCK
+         * =====================================================
+         *
+         * Current stock = 4
+         * Added quantity = 6
+         * New stock = 10
+         */
         inventoryRepository.addStock(
                 productId,
                 6
@@ -119,8 +172,13 @@ class SpringDataInventoryRepositoryTest {
                         .orElseThrow()
         );
 
-
-        // REPLACE STOCK
+        /*
+         * =====================================================
+         * REPLACE STOCK
+         * =====================================================
+         *
+         * Replace current quantity with 7.
+         */
         inventoryRepository.setStock(
                 productId,
                 7

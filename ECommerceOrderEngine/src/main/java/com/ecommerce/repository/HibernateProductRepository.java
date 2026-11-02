@@ -1,108 +1,258 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.database.HibernateUtil;
 import com.ecommerce.model.Product;
-import org.springframework.stereotype.Repository;
+
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import org.springframework.stereotype.Repository;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+
 @Repository
-public  class HibernateProductRepository implements ProductRepository{
+public class HibernateProductRepository implements ProductRepository {
 
+    /*
+     * =========================================================
+     * SAVE PRODUCT
+     * =========================================================
+     *
+     * Supports GenerationType.IDENTITY.
+     *
+     * The new Product must have a null identifier
+     * before session.persist() is called.
+     */
     @Override
-    public void save(Product product) throws SQLException{
-        if(product == null){
-            throw new IllegalArgumentException("Product cannot be null");
+    public void save(Product product) throws SQLException {
+
+        if (product == null) {
+            throw new IllegalArgumentException(
+                    "Product cannot be null"
+            );
         }
 
-        Transaction transaction = null;
+        try (Session session =
+                     HibernateUtil.getSessionFactory().openSession()) {
 
-        try(Session session = HibernateUtil.getSessionFactory().openSession()){
-            transaction = session.beginTransaction();
+            Transaction transaction = session.beginTransaction();
 
-            session.persist(product);
-            transaction.commit();
-        }
-        catch(HibernateException e){
-            if(transaction != null && transaction.isActive()){
-                transaction.rollback();
+            try {
+
+                session.persist(product);
+
+                transaction.commit();
+
+            } catch (RuntimeException e) {
+
+                rollbackSafely(transaction, e);
+
+                throw new SQLException(
+                        "Failed to save product",
+                        e
+                );
             }
 
-            throw new SQLException("Failed to save product" , e);
+        } catch (HibernateException e) {
+
+            throw new SQLException(
+                    "Failed to open Hibernate session for saving product",
+                    e
+            );
         }
     }
 
+    /*
+     * =========================================================
+     * FIND PRODUCT BY ID
+     * =========================================================
+     */
     @Override
-    public Optional<Product> findById(long id) throws SQLException{
-        try(Session session = HibernateUtil.getSessionFactory().openSession()){
-            Product product = session.find(Product.class,id);
+    public Optional<Product> findById(long id) throws SQLException {
+
+        try (Session session =
+                     HibernateUtil.getSessionFactory().openSession()) {
+
+            Product product = session.find(
+                    Product.class,
+                    id
+            );
 
             return Optional.ofNullable(product);
-        }
-        catch(HibernateException e){
-            throw new SQLException("Failed to find product",e);
-        }
-    }
 
-    @Override
-    public List<Product> findAll() throws SQLException{
-        try(Session session = HibernateUtil.getSessionFactory().openSession()){
-            return session.createQuery("from Product", Product.class).getResultList();
-        }
-        catch(HibernateException e){
-            throw new SQLException("Failed to retrieve products", e);
+        } catch (HibernateException e) {
+
+            throw new SQLException(
+                    "Failed to find product with id: " + id,
+                    e
+            );
         }
     }
 
+    /*
+     * =========================================================
+     * FIND ALL PRODUCTS
+     * =========================================================
+     */
     @Override
-    public void update(Product product) throws SQLException{
-        if(product == null){
-            throw new IllegalArgumentException("Product cannot be null");
-        }
+    public List<Product> findAll() throws SQLException {
 
-        Transaction transaction = null;
+        try (Session session =
+                     HibernateUtil.getSessionFactory().openSession()) {
 
-        try(Session session = HibernateUtil.getSessionFactory().openSession()){
-            transaction = session.beginTransaction();
-            session.merge(product);
-            transaction.commit();
-        }
-        catch(HibernateException e){
-            if(transaction != null && transaction.isActive()){
-                transaction.rollback();
-            }
-            throw new SQLException("Failed to update product",e);
+            return session.createQuery(
+                    "from Product",
+                    Product.class
+            ).getResultList();
+
+        } catch (HibernateException e) {
+
+            throw new SQLException(
+                    "Failed to retrieve products",
+                    e
+            );
         }
     }
 
+    /*
+     * =========================================================
+     * UPDATE PRODUCT
+     * =========================================================
+     *
+     * Uses merge() for a previously persisted Product.
+     */
     @Override
-    public boolean deleteById(long id) throws SQLException{
-        Transaction transaction = null;
+    public void update(Product product) throws SQLException {
 
-        try(Session session = HibernateUtil.getSessionFactory().openSession()){
-            transaction = session.beginTransaction();
+        if (product == null) {
+            throw new IllegalArgumentException(
+                    "Product cannot be null"
+            );
+        }
 
-            Product product = session.find(Product.class,id);
+        if (product.getId() <= 0) {
+            throw new IllegalArgumentException(
+                    "A persisted product ID is required for update"
+            );
+        }
 
-            if(product == null){
+        try (Session session =
+                     HibernateUtil.getSessionFactory().openSession()) {
+
+            Transaction transaction = session.beginTransaction();
+
+            try {
+
+                session.merge(product);
+
                 transaction.commit();
-                return false;
+
+            } catch (RuntimeException e) {
+
+                rollbackSafely(transaction, e);
+
+                throw new SQLException(
+                        "Failed to update product",
+                        e
+                );
             }
 
-            session.remove(product);
-            transaction.commit();
+        } catch (HibernateException e) {
 
-            return true;
+            throw new SQLException(
+                    "Failed to open Hibernate session for updating product",
+                    e
+            );
         }
-        catch(HibernateException e){
-            if(transaction != null && transaction.isActive()){
+    }
+
+    /*
+     * =========================================================
+     * DELETE PRODUCT BY ID
+     * =========================================================
+     */
+    @Override
+    public boolean deleteById(long id) throws SQLException {
+
+        try (Session session =
+                     HibernateUtil.getSessionFactory().openSession()) {
+
+            Transaction transaction = session.beginTransaction();
+
+            try {
+
+                Product product = session.find(
+                        Product.class,
+                        id
+                );
+
+                if (product == null) {
+
+                    transaction.commit();
+
+                    return false;
+                }
+
+                session.remove(product);
+
+                transaction.commit();
+
+                return true;
+
+            } catch (RuntimeException e) {
+
+                rollbackSafely(transaction, e);
+
+                throw new SQLException(
+                        "Failed to delete product with id: " + id,
+                        e
+                );
+            }
+
+        } catch (HibernateException e) {
+
+            throw new SQLException(
+                    "Failed to open Hibernate session for deleting product",
+                    e
+            );
+        }
+    }
+
+    /*
+     * =========================================================
+     * SAFE TRANSACTION ROLLBACK
+     * =========================================================
+     *
+     * Rollback happens before the Session is closed.
+     *
+     * If rollback itself fails, the original exception
+     * is preserved and the rollback error is attached
+     * as a suppressed exception.
+     */
+    private void rollbackSafely(
+            Transaction transaction,
+            RuntimeException originalException
+    ) {
+
+        if (transaction == null) {
+            return;
+        }
+
+        try {
+
+            if (transaction.isActive()) {
                 transaction.rollback();
             }
-            throw new SQLException("Failed to delete product",e);
+
+        } catch (RuntimeException rollbackException) {
+
+            originalException.addSuppressed(
+                    rollbackException
+            );
         }
     }
 }

@@ -2,6 +2,8 @@ package com.ecommerce.database;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import com.ecommerce.security.model.UserAccount;
+import com.ecommerce.seller.model.Seller;
 
 /**
  * Creates and provides the Hibernate SessionFactory.
@@ -40,6 +42,9 @@ public final class HibernateUtil {
             Configuration configuration =
                     new Configuration()
                             .configure();
+
+            configuration.addAnnotatedClass(Seller.class);
+            configuration.addAnnotatedClass(UserAccount.class);
 
 
             /*

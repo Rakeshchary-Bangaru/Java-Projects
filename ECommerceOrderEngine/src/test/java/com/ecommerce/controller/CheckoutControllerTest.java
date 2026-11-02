@@ -9,6 +9,8 @@ import com.ecommerce.model.Customer;
 import com.ecommerce.model.Order;
 import com.ecommerce.model.Product;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+
 import com.ecommerce.service.CustomerService;
 import com.ecommerce.service.ProductService;
 import com.ecommerce.service.SpringOrderService;
@@ -19,24 +21,49 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.time.Instant;
+import java.util.List;
+
+import static org.springframework.test.web.servlet.request
+        .MockMvcRequestBuilders.post;
+
+import static org.springframework.test.web.servlet.result
+        .MockMvcResultMatchers.jsonPath;
+
+import static org.springframework.test.web.servlet.result
+        .MockMvcResultMatchers.status;
+
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet
+        .OAuth2ClientWebSecurityAutoConfiguration;
 
 
-@WebMvcTest(CheckoutController.class)
+@WebMvcTest(
+        controllers = CheckoutController.class,
+        excludeAutoConfiguration = {
+                OAuth2ClientWebSecurityAutoConfiguration.class
+        }
+)
 class CheckoutControllerTest {
 
     @Autowired
@@ -60,16 +87,35 @@ class CheckoutControllerTest {
 
 
     /*
+     * =========================================================
      * POST /api/checkout
      *
-     * Successful checkout
+     * Successful customer checkout.
+     *
+     * V7 SECURITY:
+     * Customer identity is resolved from the authenticated
+     * JWT userId claim instead of a customerId supplied in
+     * the request body.
+     * =========================================================
      */
     @Test
     void shouldCheckoutSuccessfully()
             throws Exception {
 
         long orderId = 9901001L;
+
+        /*
+         * Customer id belongs to the domain/customer table.
+         * It is NOT supplied by the browser anymore.
+         */
         long customerId = 8101L;
+
+        /*
+         * UserAccount id represents the authenticated identity
+         * contained inside the JWT.
+         */
+        long userAccountId = 101L;
+
         long productId = 7001L;
 
 
@@ -102,12 +148,19 @@ class CheckoutControllerTest {
                 );
 
 
+        /*
+         * V7:
+         * Resolve Customer using authenticated UserAccount id.
+         */
         when(
-                customerService.findByIdOrThrow(
-                        customerId
-                )
+                customerService
+                        .findByUserAccountIdOrThrow(
+                                userAccountId
+                        )
         )
-                .thenReturn(customer);
+                .thenReturn(
+                        customer
+                );
 
 
         when(
@@ -115,7 +168,9 @@ class CheckoutControllerTest {
                         productId
                 )
         )
-                .thenReturn(product);
+                .thenReturn(
+                        product
+                );
 
 
         when(
@@ -173,11 +228,15 @@ class CheckoutControllerTest {
                 );
 
 
+        /*
+         * customerId is intentionally absent.
+         *
+         * Customer identity must come from the JWT.
+         */
         String requestBody =
                 """
                 {
                   "orderId": 9901001,
-                  "customerId": 8101,
                   "paymentType": "CARD",
                   "items": [
                     {
@@ -191,9 +250,23 @@ class CheckoutControllerTest {
 
         mockMvc.perform(
                         post("/api/checkout")
+
+                                /*
+                                 * Simulate an authenticated CUSTOMER.
+                                 *
+                                 * The userId claim is the id of the
+                                 * authenticated UserAccount.
+                                 */
+                                .principal(
+                                        customerAuthentication(
+                                                userAccountId
+                                        )
+                                )
+
                                 .contentType(
                                         MediaType.APPLICATION_JSON
                                 )
+
                                 .content(
                                         requestBody
                                 )
@@ -201,18 +274,28 @@ class CheckoutControllerTest {
                 .andExpect(
                         status().isCreated()
                 )
+
                 .andExpect(
                         jsonPath("$.id")
-                                .value(9901001)
+                                .value(orderId)
                 )
+
+                /*
+                 * Returning customerId in the response is safe.
+                 *
+                 * The important security rule is that customerId
+                 * cannot be selected by the incoming request.
+                 */
                 .andExpect(
                         jsonPath("$.customerId")
-                                .value(8101)
+                                .value(customerId)
                 )
+
                 .andExpect(
                         jsonPath("$.customerName")
                                 .value("Rakesh")
                 )
+
                 .andExpect(
                         jsonPath("$.items")
                                 .isArray()
@@ -220,8 +303,8 @@ class CheckoutControllerTest {
 
 
         verify(customerService)
-                .findByIdOrThrow(
-                        customerId
+                .findByUserAccountIdOrThrow(
+                        userAccountId
                 );
 
 
@@ -248,10 +331,12 @@ class CheckoutControllerTest {
 
 
     /*
-     * Invalid checkout request
+     * =========================================================
+     * Invalid checkout request.
      *
-     * @Valid should reject the request
-     * before any service is called.
+     * @Valid should reject the request before checkout
+     * business services are called.
+     * =========================================================
      */
     @Test
     void shouldReturnBadRequestWhenCheckoutRequestIsInvalid()
@@ -273,6 +358,7 @@ class CheckoutControllerTest {
                                         requestBody
                                 )
                 )
+
                 .andExpect(
                         status().isBadRequest()
                 );
@@ -288,23 +374,32 @@ class CheckoutControllerTest {
 
 
     /*
-     * Customer does not exist
+     * =========================================================
+     * Authenticated user has no linked Customer profile.
+     *
+     * V7:
+     * We no longer test a client-supplied missing customerId.
+     *
+     * Instead, we verify that the authenticated UserAccount
+     * must have a corresponding Customer profile.
+     * =========================================================
      */
     @Test
-    void shouldReturnNotFoundWhenCustomerDoesNotExist()
+    void shouldReturnNotFoundWhenAuthenticatedUserHasNoCustomerProfile()
             throws Exception {
 
-        long customerId = 9999L;
+        long userAccountId = 999L;
 
 
         when(
-                customerService.findByIdOrThrow(
-                        customerId
-                )
+                customerService
+                        .findByUserAccountIdOrThrow(
+                                userAccountId
+                        )
         )
                 .thenThrow(
                         new ResourceNotFoundException(
-                                "Customer not found"
+                                "Customer profile not found for authenticated user"
                         )
                 );
 
@@ -313,7 +408,6 @@ class CheckoutControllerTest {
                 """
                 {
                   "orderId": 9901001,
-                  "customerId": 9999,
                   "paymentType": "CARD",
                   "items": [
                     {
@@ -327,24 +421,37 @@ class CheckoutControllerTest {
 
         mockMvc.perform(
                         post("/api/checkout")
+
+                                .principal(
+                                        customerAuthentication(
+                                                userAccountId
+                                        )
+                                )
+
                                 .contentType(
                                         MediaType.APPLICATION_JSON
                                 )
+
                                 .content(
                                         requestBody
                                 )
                 )
+
                 .andExpect(
                         status().isNotFound()
                 );
 
 
         verify(customerService)
-                .findByIdOrThrow(
-                        customerId
+                .findByUserAccountIdOrThrow(
+                        userAccountId
                 );
 
 
+        /*
+         * Checkout must stop immediately because there
+         * is no Customer profile for this UserAccount.
+         */
         verifyNoInteractions(
                 productService,
                 checkoutService,
@@ -354,13 +461,19 @@ class CheckoutControllerTest {
 
 
     /*
-     * Product does not exist
+     * =========================================================
+     * Product does not exist.
+     *
+     * Customer is first resolved securely from JWT.
+     * Product lookup then fails with 404.
+     * =========================================================
      */
     @Test
     void shouldReturnNotFoundWhenProductDoesNotExist()
             throws Exception {
 
         long customerId = 8101L;
+        long userAccountId = 101L;
         long productId = 9999L;
 
 
@@ -373,9 +486,10 @@ class CheckoutControllerTest {
 
 
         when(
-                customerService.findByIdOrThrow(
-                        customerId
-                )
+                customerService
+                        .findByUserAccountIdOrThrow(
+                                userAccountId
+                        )
         )
                 .thenReturn(
                         customer
@@ -398,7 +512,6 @@ class CheckoutControllerTest {
                 """
                 {
                   "orderId": 9901001,
-                  "customerId": 8101,
                   "paymentType": "CARD",
                   "items": [
                     {
@@ -412,21 +525,30 @@ class CheckoutControllerTest {
 
         mockMvc.perform(
                         post("/api/checkout")
+
+                                .principal(
+                                        customerAuthentication(
+                                                userAccountId
+                                        )
+                                )
+
                                 .contentType(
                                         MediaType.APPLICATION_JSON
                                 )
+
                                 .content(
                                         requestBody
                                 )
                 )
+
                 .andExpect(
                         status().isNotFound()
                 );
 
 
         verify(customerService)
-                .findByIdOrThrow(
-                        customerId
+                .findByUserAccountIdOrThrow(
+                        userAccountId
                 );
 
 
@@ -436,6 +558,10 @@ class CheckoutControllerTest {
                 );
 
 
+        /*
+         * Checkout must not start when one of the
+         * requested products cannot be resolved.
+         */
         verify(
                 checkoutService,
                 never()
@@ -455,7 +581,12 @@ class CheckoutControllerTest {
 
 
     /*
-     * Checkout with multiple products
+     * =========================================================
+     * Checkout with multiple products.
+     *
+     * Verifies that JWT-based customer resolution continues
+     * to work when the Cart contains multiple products.
+     * =========================================================
      */
     @Test
     void shouldCheckoutWithMultipleProducts()
@@ -463,6 +594,7 @@ class CheckoutControllerTest {
 
         long orderId = 9901002L;
         long customerId = 8101L;
+        long userAccountId = 101L;
 
 
         Customer customer =
@@ -504,9 +636,10 @@ class CheckoutControllerTest {
 
 
         when(
-                customerService.findByIdOrThrow(
-                        customerId
-                )
+                customerService
+                        .findByUserAccountIdOrThrow(
+                                userAccountId
+                        )
         )
                 .thenReturn(
                         customer
@@ -588,11 +721,13 @@ class CheckoutControllerTest {
                 );
 
 
+        /*
+         * No customerId in the request.
+         */
         String requestBody =
                 """
                 {
                   "orderId": 9901002,
-                  "customerId": 8101,
                   "paymentType": "UPI",
                   "items": [
                     {
@@ -610,23 +745,40 @@ class CheckoutControllerTest {
 
         mockMvc.perform(
                         post("/api/checkout")
+
+                                .principal(
+                                        customerAuthentication(
+                                                userAccountId
+                                        )
+                                )
+
                                 .contentType(
                                         MediaType.APPLICATION_JSON
                                 )
+
                                 .content(
                                         requestBody
                                 )
                 )
+
                 .andExpect(
                         status().isCreated()
                 )
+
                 .andExpect(
                         jsonPath("$.id")
-                                .value(9901002)
+                                .value(orderId)
                 )
+
                 .andExpect(
                         jsonPath("$.customerId")
-                                .value(8101)
+                                .value(customerId)
+                );
+
+
+        verify(customerService)
+                .findByUserAccountIdOrThrow(
+                        userAccountId
                 );
 
 
@@ -655,5 +807,67 @@ class CheckoutControllerTest {
                 .findByIdOrThrow(
                         orderId
                 );
+    }
+
+    /*
+     * =========================================================
+     * TEST AUTHENTICATION HELPER
+     * ---------------------------------------------------------
+     * @WebMvcTest does not run our complete production JWT
+     * authentication pipeline.
+     *
+     * Therefore we provide the authenticated servlet principal
+     * directly to MockMvc.
+     *
+     * This principal has the same important information that
+     * the real application JWT contains:
+     *
+     * - userId
+     * - role
+     * - ROLE_CUSTOMER authority
+     * =========================================================
+     */
+    private JwtAuthenticationToken customerAuthentication(
+            long userAccountId) {
+
+        Instant now =
+                Instant.now();
+
+        Jwt jwt =
+                Jwt.withTokenValue(
+                                "checkout-test-token"
+                        )
+                        .header(
+                                "alg",
+                                "none"
+                        )
+                        .subject(
+                                "customer@test.com"
+                        )
+                        .claim(
+                                "userId",
+                                userAccountId
+                        )
+                        .claim(
+                                "role",
+                                "CUSTOMER"
+                        )
+                        .issuedAt(
+                                now
+                        )
+                        .expiresAt(
+                                now.plusSeconds(900)
+                        )
+                        .build();
+
+
+        return new JwtAuthenticationToken(
+                jwt,
+                List.of(
+                        new SimpleGrantedAuthority(
+                                "ROLE_CUSTOMER"
+                        )
+                )
+        );
     }
 }

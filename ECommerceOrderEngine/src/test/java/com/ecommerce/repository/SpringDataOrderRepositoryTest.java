@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.EcommerceApplication;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,99 +38,121 @@ class SpringDataOrderRepositoryTest {
     @Autowired
     private EntityManager entityManager;
 
-
     @Test
     void shouldSaveAndRetrieveDetailedOrderGraph() {
 
-        long productId = 990004L;
+        /*
+         * Only product IDs are generated automatically.
+         *
+         * Customer and Order IDs retain their
+         * manually assigned values.
+         */
         long customerId = 990005L;
         long orderId = 990006L;
 
+        /*
+         * =====================================================
+         * CREATE PRODUCT WITHOUT ID
+         * =====================================================
+         */
+        Product product = new Product(
+                "Order Test Keyboard",
+                "Electronics",
+                new BigDecimal("100.00"),
+                "Keyboard used for order repository integration testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Order Test Keyboard",
-                        "Electronics",
-                        100.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Order Test Customer",
-                        "ordertest@test.com"
-                );
-
-
-        productRepository.save(product);
-        customerRepository.save(customer);
-
-
-        OrderItem item =
-                new OrderItem(
-                        product,
-                        2
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Order Test Customer",
+                "ordertest@test.com"
+        );
 
         /*
-         * We only need a valid PaymentType for this test.
-         * This avoids assuming a particular enum constant name.
+         * =====================================================
+         * SAVE PRODUCT AND CUSTOMER
+         * =====================================================
+         *
+         * saveAndFlush() ensures the Product row exists
+         * before creating an OrderItem referencing it.
+         */
+        Product savedProduct =
+                productRepository.saveAndFlush(product);
+
+        assertNotNull(savedProduct);
+        assertNotNull(savedProduct.getId());
+        assertTrue(savedProduct.getId() > 0);
+
+        long productId = savedProduct.getId();
+
+        customerRepository.saveAndFlush(customer);
+
+        /*
+         * =====================================================
+         * CREATE ORDER ITEM
+         * =====================================================
+         */
+        OrderItem item = new OrderItem(
+                savedProduct,
+                2
+        );
+
+        /*
+         * Use a valid payment type from the enum.
+         * This preserves the original test behavior.
          */
         PaymentType paymentType =
                 PaymentType.values()[0];
 
+        /*
+         * =====================================================
+         * CREATE ORDER
+         * =====================================================
+         */
+        Order order = new Order.Builder()
+                .id(orderId)
+                .customer(customer)
+                .items(List.of(item))
+                .paymentType(paymentType)
+                .build();
 
-        Order order =
-                new Order.Builder()
-                        .id(orderId)
-                        .customer(customer)
-                        .items(List.of(item))
-                        .paymentType(paymentType)
-                        .build();
-
-
-        // CREATE ORDER + ORDER ITEM
+        /*
+         * =====================================================
+         * SAVE ORDER AND ORDER ITEM
+         * =====================================================
+         */
         orderRepository.saveAndFlush(order);
 
-
         /*
-         * Clear the persistence context.
+         * =====================================================
+         * CLEAR PERSISTENCE CONTEXT
+         * =====================================================
          *
-         * This is important:
-         * we do not want the next lookup simply returning
-         * objects that are already managed in memory.
+         * Force Hibernate to load the Order graph
+         * from the database rather than returning
+         * an already managed entity.
          */
         entityManager.clear();
 
-
-        // LOAD COMPLETE GRAPH
-        Order found =
-                orderRepository
-                        .findDetailedById(orderId)
-                        .orElseThrow();
-
+        /*
+         * =====================================================
+         * LOAD COMPLETE ORDER GRAPH
+         * =====================================================
+         */
+        Order found = orderRepository
+                .findDetailedById(orderId)
+                .orElseThrow();
 
         /*
-         * Detach everything again.
+         * Initialize the product ID while the persistence
+         * context is available.
          *
-         * Now these assertions prove the fetch join
-         * actually loaded the relationships.
+         * The ID of a proxy is generally accessible without
+         * initialization, but explicitly capturing it before
+         * detachment makes the assertion less dependent
+         * on proxy behavior.
          */
-        entityManager.clear();
-
-
-        assertEquals(
-                orderId,
-                found.getId()
-        );
-
-        assertEquals(
-                customerId,
-                found.getCustomer().getId()
-        );
-
         assertEquals(
                 1,
                 found.getItems().size()
@@ -136,6 +160,60 @@ class SpringDataOrderRepositoryTest {
 
         OrderItem foundItem =
                 found.getItems().get(0);
+
+        long foundProductId =
+                foundItem.getProduct().getId();
+
+        /*
+         * =====================================================
+         * DETACH THE LOADED GRAPH
+         * =====================================================
+         *
+         * The following assertions are performed after
+         * clearing the EntityManager.
+         */
+        entityManager.clear();
+
+        /*
+         * =====================================================
+         * VERIFY ORDER
+         * =====================================================
+         */
+        assertEquals(
+                orderId,
+                found.getId()
+        );
+
+        /*
+         * =====================================================
+         * VERIFY CUSTOMER
+         * =====================================================
+         */
+        assertEquals(
+                customerId,
+                found.getCustomer().getId()
+        );
+
+        /*
+         * =====================================================
+         * VERIFY ORDER ITEMS
+         * =====================================================
+         */
+        assertEquals(
+                1,
+                found.getItems().size()
+        );
+
+        foundItem = found.getItems().get(0);
+
+        /*
+         * Verify that the OrderItem references
+         * the database-generated product ID.
+         */
+        assertEquals(
+                productId,
+                foundProductId
+        );
 
         assertEquals(
                 productId,
@@ -147,6 +225,15 @@ class SpringDataOrderRepositoryTest {
                 foundItem.getQuantity()
         );
 
+        /*
+         * =====================================================
+         * VERIFY TOTAL
+         * =====================================================
+         *
+         * Unit price = 100.00
+         * Quantity = 2
+         * Total = 200.00
+         */
         assertEquals(
                 200.00,
                 found.calculateTotal(),

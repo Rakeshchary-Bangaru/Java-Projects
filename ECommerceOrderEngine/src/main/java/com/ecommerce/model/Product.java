@@ -1,13 +1,13 @@
 package com.ecommerce.model;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
+import com.ecommerce.seller.model.Seller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Represents a product available in the e-commerce system.
@@ -26,8 +26,9 @@ public  class Product implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private  long id;
+    private Long id;
 
     @Column(name = "name" , nullable = false)
     private  String name;
@@ -49,6 +50,10 @@ public  class Product implements Serializable {
 
     @Column(name = "active", nullable = false)
     private boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
 
     /**
      * Creates a product with the specified identifier, name,
@@ -144,6 +149,30 @@ public  class Product implements Serializable {
         this.active = active;
     }
 
+
+    public Product(
+            String name,
+            String category,
+            BigDecimal price,
+            String description,
+            String brand
+    ) {
+        this.name = Objects.requireNonNull(name).trim();
+        this.category = Objects.requireNonNull(category).trim();
+
+        if (this.name.isBlank() || this.category.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product name and category are required"
+            );
+        }
+
+        updatePrice(price);
+
+        this.description = description;
+        this.brand = brand;
+        this.active = true;
+    }
+
     public long getId() {
         return id;
     }
@@ -179,6 +208,9 @@ public  class Product implements Serializable {
 
     public boolean isActive() {
         return active;
+    }
+    public Seller getSeller() {
+        return seller;
     }
 
     /**
@@ -218,5 +250,44 @@ public  class Product implements Serializable {
 
     public void activate() {
         this.active = true;
+    }
+    public void assignSeller(Seller seller) {
+
+        this.seller =
+                Objects.requireNonNull(
+                        seller,
+                        "Seller is required"
+                );
+    }
+
+    public void replaceDetails(
+            String name,
+            String category,
+            BigDecimal price
+    ) {
+
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product name is required"
+            );
+        }
+
+        if (category == null || category.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product category is required"
+            );
+        }
+
+        if (price == null ||
+                price.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Product price must be greater than zero"
+            );
+        }
+
+        this.name = name.trim();
+        this.category = category.trim();
+        this.price = price;
     }
 }

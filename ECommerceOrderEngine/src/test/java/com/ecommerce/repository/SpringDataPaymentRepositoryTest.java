@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.EcommerceApplication;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,99 +37,139 @@ class SpringDataPaymentRepositoryTest {
     @Autowired
     private SpringDataCustomerRepository customerRepository;
 
-
     @Test
     void shouldSaveAndFindPaymentsByOrder() {
 
-        long productId = 990007L;
+        /*
+         * Customer and Order IDs remain manually assigned.
+         * Product ID is generated automatically by MySQL.
+         */
         long customerId = 990008L;
         long orderId = 990009L;
 
+        /*
+         * =====================================================
+         * CREATE PRODUCT WITHOUT MANUALLY ASSIGNED ID
+         * =====================================================
+         */
+        Product product = new Product(
+                "Payment Test Product",
+                "Electronics",
+                new BigDecimal("100.00"),
+                "Product used for payment repository integration testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Payment Test Product",
-                        "Electronics",
-                        100.00
-                );
+        Customer customer = new Customer(
+                customerId,
+                "Payment Test Customer",
+                "paymenttest@test.com"
+        );
 
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Payment Test Customer",
-                        "paymenttest@test.com"
-                );
+        /*
+         * =====================================================
+         * SAVE PRODUCT AND CUSTOMER
+         * =====================================================
+         */
+        Product savedProduct =
+                productRepository.saveAndFlush(product);
 
+        assertNotNull(savedProduct);
+        assertNotNull(savedProduct.getId());
+        assertTrue(savedProduct.getId() > 0);
 
-        productRepository.save(product);
-        customerRepository.save(customer);
+        long productId = savedProduct.getId();
 
+        customerRepository.saveAndFlush(customer);
 
+        /*
+         * =====================================================
+         * CREATE ORDER ITEM
+         * =====================================================
+         *
+         * Use the persisted Product to ensure the OrderItem
+         * references the database-generated product ID.
+         */
+        OrderItem item = new OrderItem(
+                savedProduct,
+                2
+        );
+
+        /*
+         * =====================================================
+         * CREATE ORDER
+         * =====================================================
+         */
         PaymentType paymentType =
                 PaymentType.values()[0];
 
+        Order order = new Order.Builder()
+                .id(orderId)
+                .customer(customer)
+                .items(List.of(item))
+                .paymentType(paymentType)
+                .build();
 
-        OrderItem item =
-                new OrderItem(
-                        product,
-                        2
-                );
+        Order savedOrder =
+                orderRepository.saveAndFlush(order);
 
+        assertNotNull(savedOrder);
+        assertEquals(orderId, savedOrder.getId());
 
-        Order order =
-                new Order.Builder()
-                        .id(orderId)
-                        .customer(customer)
-                        .items(List.of(item))
-                        .paymentType(paymentType)
-                        .build();
+        assertEquals(
+                productId,
+                savedProduct.getId()
+        );
 
+        /*
+         * =====================================================
+         * FIRST PAYMENT ATTEMPT - FAILED
+         * =====================================================
+         */
+        Payment firstPayment = new Payment(
+                savedOrder,
+                paymentType,
+                200.00,
+                false,
+                "Payment failed"
+        );
 
-        orderRepository.saveAndFlush(order);
+        /*
+         * =====================================================
+         * SECOND PAYMENT ATTEMPT - SUCCESSFUL
+         * =====================================================
+         */
+        Payment secondPayment = new Payment(
+                savedOrder,
+                paymentType,
+                200.00,
+                true,
+                "Payment successful"
+        );
 
-
-        Payment firstPayment =
-                new Payment(
-                        order,
-                        paymentType,
-                        200.00,
-                        false,
-                        "Payment failed"
-                );
-
-
-        Payment secondPayment =
-                new Payment(
-                        order,
-                        paymentType,
-                        200.00,
-                        true,
-                        "Payment successful"
-                );
-
-
+        /*
+         * =====================================================
+         * SAVE BOTH PAYMENT ATTEMPTS
+         * =====================================================
+         */
         Payment savedFirst =
-                paymentRepository.saveAndFlush(
-                        firstPayment
-                );
+                paymentRepository.saveAndFlush(firstPayment);
 
         Payment savedSecond =
-                paymentRepository.saveAndFlush(
-                        secondPayment
-                );
-
+                paymentRepository.saveAndFlush(secondPayment);
 
         assertNotNull(savedFirst.getId());
         assertNotNull(savedSecond.getId());
 
-
-        // ALL PAYMENT ATTEMPTS
+        /*
+         * =====================================================
+         * FIND ALL PAYMENT ATTEMPTS
+         * =====================================================
+         */
         List<Payment> payments =
-                paymentRepository
-                        .findByOrder_IdOrderByIdAsc(
-                                orderId
-                        );
+                paymentRepository.findByOrder_IdOrderByIdAsc(
+                        orderId
+                );
 
         assertEquals(
                 2,
@@ -144,13 +186,42 @@ class SpringDataPaymentRepositoryTest {
                 payments.get(1).getId()
         );
 
+        /*
+         * =====================================================
+         * VERIFY FAILED PAYMENT
+         * =====================================================
+         */
+        Payment first = payments.get(0);
 
-        // LATEST PAYMENT ATTEMPT
+        assertFalse(first.isSuccessful());
+
+        assertEquals(
+                "Payment failed",
+                first.getMessage()
+        );
+
+        /*
+         * =====================================================
+         * VERIFY SUCCESSFUL PAYMENT
+         * =====================================================
+         */
+        Payment second = payments.get(1);
+
+        assertTrue(second.isSuccessful());
+
+        assertEquals(
+                "Payment successful",
+                second.getMessage()
+        );
+
+        /*
+         * =====================================================
+         * FIND LATEST PAYMENT ATTEMPT
+         * =====================================================
+         */
         Payment latest =
                 paymentRepository
-                        .findTopByOrder_IdOrderByIdDesc(
-                                orderId
-                        )
+                        .findTopByOrder_IdOrderByIdDesc(orderId)
                         .orElseThrow();
 
         assertEquals(

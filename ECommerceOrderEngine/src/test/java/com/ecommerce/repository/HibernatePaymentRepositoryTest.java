@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.model.Customer;
@@ -6,10 +7,12 @@ import com.ecommerce.model.OrderItem;
 import com.ecommerce.model.OrderStatus;
 import com.ecommerce.model.PaymentType;
 import com.ecommerce.model.Product;
+
 import com.ecommerce.payment.PaymentResult;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,65 +37,80 @@ class HibernatePaymentRepositoryTest {
         PaymentRepository paymentRepository =
                 new HibernatePaymentRepository();
 
-
-        long productId = 980401L;
+        /*
+         * Customer and order IDs remain manually assigned.
+         * Only the Product ID is generated automatically.
+         */
         long customerId = 980401L;
         long orderId = 980401L;
 
+        Long productId = null;
 
         /*
-         * Cleanup data from a previously interrupted test.
+         * Clean up leftover order/customer records
+         * from a previously interrupted test.
          */
         orderRepository.deleteById(orderId);
-        productRepository.deleteById(productId);
         customerRepository.deleteById(customerId);
 
+        /*
+         * Create a product without specifying its ID.
+         */
+        Product product = new Product(
+                "Hibernate Payment Product",
+                "Testing",
+                new BigDecimal("75.00"),
+                "Product used for payment repository testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Hibernate Payment Product",
-                        "Testing",
-                        75.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Hibernate Payment Customer",
-                        "hibernate.payment@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Hibernate Payment Customer",
+                "hibernate.payment@example.com"
+        );
 
         try {
 
+            /*
+             * =================================================
+             * SAVE PRODUCT AND CUSTOMER
+             * =================================================
+             */
             productRepository.save(product);
+
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
             customerRepository.save(customer);
 
+            /*
+             * =================================================
+             * CREATE ORDER WITH TWO ITEMS
+             * =================================================
+             */
+            OrderItem item = new OrderItem(
+                    product,
+                    2
+            );
 
-            OrderItem item =
-                    new OrderItem(
-                            product,
-                            2
-                    );
-
-
-            Order order =
-                    Order.restore(
-                            orderId,
-                            customer,
-                            List.of(item),
-                            PaymentType.CARD,
-                            OrderStatus.values()[0],
-                            LocalDateTime.now()
-                    );
-
+            Order order = Order.restore(
+                    orderId,
+                    customer,
+                    List.of(item),
+                    PaymentType.CARD,
+                    OrderStatus.values()[0],
+                    LocalDateTime.now()
+            );
 
             orderRepository.save(order);
 
-
             /*
-             * First payment attempt fails.
+             * =================================================
+             * FIRST PAYMENT ATTEMPT - FAILED
+             * =================================================
              */
             PaymentResult failedPayment =
                     new PaymentResult(
@@ -102,15 +120,15 @@ class HibernatePaymentRepositoryTest {
                             "Payment declined"
                     );
 
-
             paymentRepository.save(
                     orderId,
                     failedPayment
             );
 
-
             /*
-             * Second attempt succeeds.
+             * =================================================
+             * SECOND PAYMENT ATTEMPT - SUCCESSFUL
+             * =================================================
              */
             PaymentResult successfulPayment =
                     new PaymentResult(
@@ -120,32 +138,27 @@ class HibernatePaymentRepositoryTest {
                             "Payment successful"
                     );
 
-
             paymentRepository.save(
                     orderId,
                     successfulPayment
             );
 
-
-            // FIND ALL PAYMENTS
+            /*
+             * =================================================
+             * FIND ALL PAYMENT ATTEMPTS
+             * =================================================
+             */
             List<PaymentResult> payments =
-                    paymentRepository.findByOrderId(
-                            orderId
-                    );
-
+                    paymentRepository.findByOrderId(orderId);
 
             assertEquals(
                     2,
                     payments.size()
             );
 
+            PaymentResult first = payments.get(0);
 
-            PaymentResult first =
-                    payments.get(0);
-
-            assertFalse(
-                    first.isSuccessful()
-            );
+            assertFalse(first.isSuccessful());
 
             assertEquals(
                     PaymentType.CARD,
@@ -163,52 +176,51 @@ class HibernatePaymentRepositoryTest {
                     first.getMessage()
             );
 
+            /*
+             * =================================================
+             * VERIFY SUCCESSFUL PAYMENT
+             * =================================================
+             */
+            PaymentResult second = payments.get(1);
 
-            PaymentResult second =
-                    payments.get(1);
-
-            assertTrue(
-                    second.isSuccessful()
-            );
+            assertTrue(second.isSuccessful());
 
             assertEquals(
                     "Payment successful",
                     second.getMessage()
             );
 
-
-            // FIND LATEST PAYMENT
+            /*
+             * =================================================
+             * FIND LATEST PAYMENT
+             * =================================================
+             */
             Optional<PaymentResult> latest =
-                    paymentRepository
-                            .findLatestByOrderId(
-                                    orderId
-                            );
+                    paymentRepository.findLatestByOrderId(orderId);
 
+            assertTrue(latest.isPresent());
 
             assertTrue(
-                    latest.isPresent()
-            );
-
-            assertTrue(
-                    latest.get()
-                            .isSuccessful()
+                    latest.get().isSuccessful()
             );
 
             assertEquals(
                     "Payment successful",
-                    latest.get()
-                            .getMessage()
+                    latest.get().getMessage()
             );
-
 
             /*
-             * Deleting the Order should also delete
-             * its Payment rows through ON DELETE CASCADE.
+             * =================================================
+             * VERIFY ON DELETE CASCADE
+             * =================================================
+             *
+             * Deleting an order should also delete
+             * its payment records.
              */
-            orderRepository.deleteById(
-                    orderId
-            );
+            boolean deleted =
+                    orderRepository.deleteById(orderId);
 
+            assertTrue(deleted);
 
             assertTrue(
                     paymentRepository
@@ -216,23 +228,27 @@ class HibernatePaymentRepositoryTest {
                             .isEmpty()
             );
 
-
         } finally {
 
             /*
-             * Safe cleanup even if an assertion fails.
+             * =================================================
+             * CLEANUP
+             * =================================================
+             *
+             * Delete order first because order items
+             * reference the product.
              */
-            orderRepository.deleteById(
-                    orderId
-            );
+            orderRepository.deleteById(orderId);
 
-            productRepository.deleteById(
-                    productId
-            );
+            /*
+             * Delete only the product created
+             * by this test.
+             */
+            if (productId != null) {
+                productRepository.deleteById(productId);
+            }
 
-            customerRepository.deleteById(
-                    customerId
-            );
+            customerRepository.deleteById(customerId);
         }
     }
 }

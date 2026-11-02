@@ -1,5 +1,6 @@
 package com.ecommerce.security.controller;
 
+import com.ecommerce.config.MvcControllerTest;
 import com.ecommerce.security.config.SecurityConfig;
 import com.ecommerce.security.dto.RegisterRequest;
 import com.ecommerce.security.model.AccountStatus;
@@ -7,6 +8,12 @@ import com.ecommerce.security.model.AuthProvider;
 import com.ecommerce.security.model.Role;
 import com.ecommerce.security.model.UserAccount;
 import com.ecommerce.security.service.RegistrationService;
+import com.ecommerce.security.recaptcha.RecaptchaVerificationService;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -29,7 +36,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(RegistrationController.class)
+@MvcControllerTest(
+        controllers = RegistrationController.class
+)
 @AutoConfigureMockMvc(addFilters = false)
 class RegistrationControllerTest {
 
@@ -41,6 +50,9 @@ class RegistrationControllerTest {
 
     @MockitoBean
     private RegistrationService registrationService;
+
+    @MockitoBean
+    private RecaptchaVerificationService recaptchaVerificationService;
 
     @Test
     void shouldRegisterCustomer() throws Exception {
@@ -60,8 +72,11 @@ class RegistrationControllerTest {
 
         RegisterRequest request =
                 new RegisterRequest(
-                        "user@email.com",
-                        "Password123!"
+                        "Rakesh Bangaru",
+                        "test@email.com",
+                        "Password123!",
+                        "test-recaptcha-token"
+
                 );
 
         mockMvc.perform(
@@ -91,6 +106,100 @@ class RegistrationControllerTest {
                 .andExpect(
                         jsonPath("$.passwordHash")
                                 .doesNotExist()
+                );
+    }
+
+    @Test
+    void shouldVerifyRecaptchaBeforeRegisteringCustomer() throws Exception {
+
+        UserAccount user = mock(UserAccount.class);
+
+        when(user.getId())
+                .thenReturn(1L);
+
+        when(user.getEmail())
+                .thenReturn("test@example.com");
+
+        when(user.getRole())
+                .thenReturn(Role.CUSTOMER);
+
+        when(user.getStatus())
+                .thenReturn(AccountStatus.ACTIVE);
+
+        when(registrationService.registerCustomer(any(RegisterRequest.class)))
+                .thenReturn(user);
+
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "name": "Test User",
+                                      "email": "test@example.com",
+                                      "password": "Password123!",
+                                      "recaptchaToken": "test-recaptcha-token"
+                                    }
+                                    """)
+                )
+                .andExpect(status().isCreated());
+
+
+        verify(recaptchaVerificationService)
+                .verify(
+                        "test-recaptcha-token",
+                        "register"
+                );
+
+        verify(registrationService)
+                .registerCustomer(
+                        any(RegisterRequest.class)
+                );
+    }
+
+    @Test
+    void shouldRejectRegistrationWhenRecaptchaVerificationFails()
+            throws Exception {
+
+        doThrow(
+                new IllegalArgumentException(
+                        "reCAPTCHA verification failed"
+                )
+        )
+                .when(recaptchaVerificationService)
+                .verify(
+                        "invalid-token",
+                        "register"
+                );
+
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "name": "Test User",
+                                      "email": "test@example.com",
+                                      "password": "Password123!",
+                                      "recaptchaToken": "invalid-token"
+                                    }
+                                    """)
+                )
+                .andExpect(status().isBadRequest());
+
+
+        verify(recaptchaVerificationService)
+                .verify(
+                        "invalid-token",
+                        "register"
+                );
+
+        verify(
+                registrationService,
+                never()
+        )
+                .registerCustomer(
+                        any(RegisterRequest.class)
                 );
     }
 }

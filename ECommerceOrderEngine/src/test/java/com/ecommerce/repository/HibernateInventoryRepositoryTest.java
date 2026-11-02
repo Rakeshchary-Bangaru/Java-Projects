@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.database.HibernateUtil;
@@ -5,7 +6,10 @@ import com.ecommerce.model.Product;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,27 +25,39 @@ class HibernateInventoryRepositoryTest {
         InventoryRepository inventoryRepository =
                 new HibernateInventoryRepository();
 
-        long productId = 980201L;
-
         /*
-         * Clean any data left by an interrupted previous run.
+         * Product ID is generated automatically by MySQL.
+         * No manually assigned product ID is required.
          */
-        deleteInventory(productId);
-        productRepository.deleteById(productId);
+        Product product = new Product(
+                "Hibernate Inventory Product",
+                "Testing",
+                new BigDecimal("25.00"),
+                "Product used for inventory repository testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Hibernate Inventory Product",
-                        "Testing",
-                        25.00
-                );
+        Long productId = null;
 
         try {
 
+            /*
+             * =================================================
+             * SAVE PRODUCT
+             * =================================================
+             */
             productRepository.save(product);
 
-            // SET STOCK
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
+            /*
+             * =================================================
+             * SET INITIAL STOCK
+             * =================================================
+             */
             inventoryRepository.setStock(
                     productId,
                     10
@@ -52,8 +68,11 @@ class HibernateInventoryRepositoryTest {
                     inventoryRepository.getStock(productId)
             );
 
-
-            // SUCCESSFUL RESERVATION
+            /*
+             * =================================================
+             * SUCCESSFUL STOCK RESERVATION
+             * =================================================
+             */
             boolean reserved =
                     inventoryRepository.reserveStock(
                             productId,
@@ -67,8 +86,14 @@ class HibernateInventoryRepositoryTest {
                     inventoryRepository.getStock(productId)
             );
 
-
-            // FAILED RESERVATION
+            /*
+             * =================================================
+             * FAILED STOCK RESERVATION
+             * =================================================
+             *
+             * Available stock = 7.
+             * Requested stock = 100.
+             */
             boolean overReserved =
                     inventoryRepository.reserveStock(
                             productId,
@@ -85,8 +110,11 @@ class HibernateInventoryRepositoryTest {
                     inventoryRepository.getStock(productId)
             );
 
-
-            // RELEASE STOCK
+            /*
+             * =================================================
+             * RELEASE STOCK
+             * =================================================
+             */
             inventoryRepository.releaseStock(
                     productId,
                     2
@@ -97,8 +125,11 @@ class HibernateInventoryRepositoryTest {
                     inventoryRepository.getStock(productId)
             );
 
-
-            // ADD STOCK
+            /*
+             * =================================================
+             * ADD STOCK
+             * =================================================
+             */
             inventoryRepository.addStock(
                     productId,
                     5
@@ -109,8 +140,11 @@ class HibernateInventoryRepositoryTest {
                     inventoryRepository.getStock(productId)
             );
 
-
-            // REPLACE STOCK
+            /*
+             * =================================================
+             * REPLACE STOCK
+             * =================================================
+             */
             inventoryRepository.setStock(
                     productId,
                     4
@@ -124,55 +158,63 @@ class HibernateInventoryRepositoryTest {
         } finally {
 
             /*
-             * Inventory references Product through a foreign key,
-             * so remove inventory before deleting the product.
+             * Inventory references Product through a foreign
+             * key, so inventory must be deleted first.
+             *
+             * If product persistence fails, productId
+             * remains null and cleanup is skipped.
              */
-            deleteInventory(productId);
+            if (productId != null) {
 
-            productRepository.deleteById(
-                    productId
-            );
+                deleteInventory(productId);
+
+                productRepository.deleteById(productId);
+            }
         }
     }
 
-
-    private void deleteInventory(
-            long productId
-    ) {
-
-        Transaction transaction = null;
+    /*
+     * =========================================================
+     * DELETE TEST INVENTORY
+     * =========================================================
+     *
+     * Keep rollback inside the open Hibernate session.
+     */
+    private void deleteInventory(long productId) {
 
         try (Session session =
-                     HibernateUtil
-                             .getSessionFactory()
-                             .openSession()) {
+                     HibernateUtil.getSessionFactory().openSession()) {
 
-            transaction =
-                    session.beginTransaction();
+            Transaction transaction = session.beginTransaction();
 
-            session.createMutationQuery(
-                            """
-                            delete from Inventory i
-                            where i.productId = :productId
-                            """
-                    )
-                    .setParameter(
-                            "productId",
-                            productId
-                    )
-                    .executeUpdate();
+            try {
 
-            transaction.commit();
+                session.createMutationQuery(
+                                """
+                                delete from Inventory i
+                                where i.productId = :productId
+                                """
+                        )
+                        .setParameter("productId", productId)
+                        .executeUpdate();
 
-        } catch (RuntimeException e) {
+                transaction.commit();
 
-            if (transaction != null &&
-                    transaction.isActive()) {
+            } catch (RuntimeException e) {
 
-                transaction.rollback();
+                try {
+
+                    if (transaction.isActive()) {
+                        transaction.rollback();
+                    }
+
+                } catch (RuntimeException rollbackException) {
+
+                    e.addSuppressed(rollbackException);
+                }
+
+                throw e;
             }
-
-            throw e;
         }
     }
 }

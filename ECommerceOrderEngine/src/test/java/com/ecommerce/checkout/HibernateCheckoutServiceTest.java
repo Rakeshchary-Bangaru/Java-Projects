@@ -1,3 +1,4 @@
+
 package com.ecommerce.checkout;
 
 import com.ecommerce.database.HibernateUtil;
@@ -18,16 +19,20 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class HibernateCheckoutServiceTest {
 
-
+    /*
+     * =========================================================
+     * TEST 1 - SUCCESSFUL CHECKOUT
+     * =========================================================
+     */
     @Test
-    void shouldCompleteCheckoutSuccessfully()
-            throws Exception {
+    void shouldCompleteCheckoutSuccessfully() throws Exception {
 
-        long productId = 980501L;
         long customerId = 980501L;
         long orderId = 980501L;
 
@@ -46,9 +51,11 @@ class HibernateCheckoutServiceTest {
         HibernatePaymentRepository paymentRepository =
                 new HibernatePaymentRepository();
 
+        Long productId = null;
 
+        // Remove leftover order/customer test data.
         cleanup(
-                productId,
+                null,
                 customerId,
                 orderId,
                 productRepository,
@@ -56,33 +63,35 @@ class HibernateCheckoutServiceTest {
                 orderRepository
         );
 
+        Product product = new Product(
+                "Hibernate Checkout Product",
+                "Testing",
+                new BigDecimal("50.00"),
+                "Product for successful checkout testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Hibernate Checkout Product",
-                        "Testing",
-                        50.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Hibernate Checkout Customer",
-                        "hibernate.checkout@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Hibernate Checkout Customer",
+                "hibernate.checkout@example.com"
+        );
 
         try {
 
+            // Hibernate generates the product ID.
             productRepository.save(product);
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
             customerRepository.save(customer);
 
             inventoryRepository.setStock(
                     productId,
                     5
             );
-
 
             Cart cart = new Cart();
 
@@ -91,14 +100,11 @@ class HibernateCheckoutServiceTest {
                     2
             );
 
-
             PaymentStrategy successfulStrategy =
                     new PaymentStrategy() {
 
                         @Override
-                        public PaymentResult pay(
-                                double amount
-                        ) {
+                        public PaymentResult pay(double amount) {
 
                             return new PaymentResult(
                                     true,
@@ -109,27 +115,22 @@ class HibernateCheckoutServiceTest {
                         }
                     };
 
-
             HibernateCheckoutService checkoutService =
                     new HibernateCheckoutService(
                             inventoryRepository,
                             orderRepository,
                             paymentRepository,
-                            type ->
-                                    new PaymentProcessor(
-                                            successfulStrategy
-                                    )
+                            type -> new PaymentProcessor(
+                                    successfulStrategy
+                            )
                     );
 
-
-            Order order =
-                    checkoutService.checkout(
-                            orderId,
-                            customer,
-                            cart,
-                            PaymentType.CARD
-                    );
-
+            Order order = checkoutService.checkout(
+                    orderId,
+                    customer,
+                    cart,
+                    PaymentType.CARD
+            );
 
             assertNotNull(order);
 
@@ -149,17 +150,11 @@ class HibernateCheckoutServiceTest {
                     0.001
             );
 
-
-            /*
-             * 5 initial stock - 2 purchased = 3.
-             */
+            // 5 initial stock - 2 purchased = 3.
             assertEquals(
                     3,
-                    inventoryRepository.getStock(
-                            productId
-                    )
+                    inventoryRepository.getStock(productId)
             );
-
 
             assertTrue(
                     orderRepository
@@ -167,14 +162,12 @@ class HibernateCheckoutServiceTest {
                             .isPresent()
             );
 
-
             assertEquals(
                     1,
                     paymentRepository
                             .findByOrderId(orderId)
                             .size()
             );
-
 
             assertTrue(
                     paymentRepository
@@ -196,12 +189,14 @@ class HibernateCheckoutServiceTest {
         }
     }
 
-
+    /*
+     * =========================================================
+     * TEST 2 - INSUFFICIENT STOCK ROLLBACK
+     * =========================================================
+     */
     @Test
-    void shouldRollbackWhenStockIsInsufficient()
-            throws Exception {
+    void shouldRollbackWhenStockIsInsufficient() throws Exception {
 
-        long productId = 980502L;
         long customerId = 980502L;
         long orderId = 980502L;
 
@@ -220,9 +215,10 @@ class HibernateCheckoutServiceTest {
         HibernatePaymentRepository paymentRepository =
                 new HibernatePaymentRepository();
 
+        Long productId = null;
 
         cleanup(
-                productId,
+                null,
                 customerId,
                 orderId,
                 productRepository,
@@ -230,47 +226,43 @@ class HibernateCheckoutServiceTest {
                 orderRepository
         );
 
+        Product product = new Product(
+                "Insufficient Stock Product",
+                "Testing",
+                new BigDecimal("25.00"),
+                "Product for insufficient stock testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Insufficient Stock Product",
-                        "Testing",
-                        25.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Insufficient Stock Customer",
-                        "hibernate.stock@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Insufficient Stock Customer",
+                "hibernate.stock@example.com"
+        );
 
         try {
 
             productRepository.save(product);
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
             customerRepository.save(customer);
 
-            /*
-             * Only one item exists.
-             */
+            // Only one item exists.
             inventoryRepository.setStock(
                     productId,
                     1
             );
 
-
             Cart cart = new Cart();
 
-            /*
-             * Checkout requests two.
-             */
+            // Checkout requests two items.
             cart.addProduct(
                     product,
                     2
             );
-
 
             HibernateCheckoutService checkoutService =
                     new HibernateCheckoutService(
@@ -279,37 +271,30 @@ class HibernateCheckoutServiceTest {
                             paymentRepository
                     );
 
-
             assertThrows(
                     InsufficientStockException.class,
-                    () ->
-                            checkoutService.checkout(
-                                    orderId,
-                                    customer,
-                                    cart,
-                                    PaymentType.CARD
-                            )
-            );
-
-
-            /*
-             * Failed reservation must not reduce stock.
-             */
-            assertEquals(
-                    1,
-                    inventoryRepository.getStock(
-                            productId
+                    () -> checkoutService.checkout(
+                            orderId,
+                            customer,
+                            cart,
+                            PaymentType.CARD
                     )
             );
 
+            // Stock must remain unchanged.
+            assertEquals(
+                    1,
+                    inventoryRepository.getStock(productId)
+            );
 
+            // No order should be created.
             assertTrue(
                     orderRepository
                             .findById(orderId)
                             .isEmpty()
             );
 
-
+            // No payment should be created.
             assertTrue(
                     paymentRepository
                             .findByOrderId(orderId)
@@ -329,12 +314,14 @@ class HibernateCheckoutServiceTest {
         }
     }
 
-
+    /*
+     * =========================================================
+     * TEST 3 - PAYMENT FAILURE ROLLBACK
+     * =========================================================
+     */
     @Test
-    void shouldRollbackInventoryWhenPaymentFails()
-            throws Exception {
+    void shouldRollbackInventoryWhenPaymentFails() throws Exception {
 
-        long productId = 980503L;
         long customerId = 980503L;
         long orderId = 980503L;
 
@@ -353,9 +340,10 @@ class HibernateCheckoutServiceTest {
         HibernatePaymentRepository paymentRepository =
                 new HibernatePaymentRepository();
 
+        Long productId = null;
 
         cleanup(
-                productId,
+                null,
                 customerId,
                 orderId,
                 productRepository,
@@ -363,33 +351,34 @@ class HibernateCheckoutServiceTest {
                 orderRepository
         );
 
+        Product product = new Product(
+                "Payment Failure Product",
+                "Testing",
+                new BigDecimal("40.00"),
+                "Product for payment rollback testing",
+                "TestBrand"
+        );
 
-        Product product =
-                new Product(
-                        productId,
-                        "Payment Failure Product",
-                        "Testing",
-                        40.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Payment Failure Customer",
-                        "hibernate.failure@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Payment Failure Customer",
+                "hibernate.failure@example.com"
+        );
 
         try {
 
             productRepository.save(product);
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
             customerRepository.save(customer);
 
             inventoryRepository.setStock(
                     productId,
                     5
             );
-
 
             Cart cart = new Cart();
 
@@ -398,17 +387,12 @@ class HibernateCheckoutServiceTest {
                     2
             );
 
-
-            /*
-             * Force the payment processor to return failure.
-             */
+            // Simulate payment failure.
             PaymentStrategy failedStrategy =
                     new PaymentStrategy() {
 
                         @Override
-                        public PaymentResult pay(
-                                double amount
-                        ) {
+                        public PaymentResult pay(double amount) {
 
                             return new PaymentResult(
                                     false,
@@ -419,55 +403,46 @@ class HibernateCheckoutServiceTest {
                         }
                     };
 
-
             HibernateCheckoutService checkoutService =
                     new HibernateCheckoutService(
                             inventoryRepository,
                             orderRepository,
                             paymentRepository,
-                            type ->
-                                    new PaymentProcessor(
-                                            failedStrategy
-                                    )
+                            type -> new PaymentProcessor(
+                                    failedStrategy
+                            )
                     );
-
 
             assertThrows(
                     PaymentFailedException.class,
-                    () ->
-                            checkoutService.checkout(
-                                    orderId,
-                                    customer,
-                                    cart,
-                                    PaymentType.CARD
-                            )
+                    () -> checkoutService.checkout(
+                            orderId,
+                            customer,
+                            cart,
+                            PaymentType.CARD
+                    )
             );
-
 
             /*
              * Stock was temporarily reserved:
              *
              * 5 -> 3
              *
-             * but payment failed, therefore the Hibernate
-             * transaction must roll it back:
+             * Payment failed, so the Hibernate
+             * transaction must roll back:
              *
              * 3 -> 5
              */
             assertEquals(
                     5,
-                    inventoryRepository.getStock(
-                            productId
-                    )
+                    inventoryRepository.getStock(productId)
             );
-
 
             assertTrue(
                     orderRepository
                             .findById(orderId)
                             .isEmpty()
             );
-
 
             assertTrue(
                     paymentRepository
@@ -488,9 +463,23 @@ class HibernateCheckoutServiceTest {
         }
     }
 
-
+    /*
+     * =========================================================
+     * CLEANUP
+     * =========================================================
+     *
+     * Deletes records in the correct order:
+     *
+     * 1. Order (and dependent order items/payments)
+     * 2. Inventory
+     * 3. Product
+     * 4. Customer
+     *
+     * The product ID is generated by MySQL, so it may
+     * be null when product persistence fails.
+     */
     private void cleanup(
-            long productId,
+            Long productId,
             long customerId,
             long orderId,
             HibernateProductRepository productRepository,
@@ -498,61 +487,45 @@ class HibernateCheckoutServiceTest {
             HibernateOrderRepository orderRepository
     ) throws Exception {
 
-        /*
-         * Order deletion also removes order_items and
-         * payments because of ON DELETE CASCADE.
-         */
-        orderRepository.deleteById(
-                orderId
-        );
+        // Delete order and dependent records.
+        orderRepository.deleteById(orderId);
 
+        if (productId != null) {
 
-        /*
-         * Inventory references Product, so remove
-         * the inventory row before deleting Product.
-         */
-        Transaction transaction = null;
+            Transaction transaction = null;
 
-        try (Session session =
-                     HibernateUtil
-                             .getSessionFactory()
-                             .openSession()) {
+            try (Session session =
+                         HibernateUtil
+                                 .getSessionFactory()
+                                 .openSession()) {
 
-            transaction =
-                    session.beginTransaction();
+                transaction = session.beginTransaction();
 
-            session.createMutationQuery(
-                            """
-                            delete from Inventory i
-                            where i.productId = :productId
-                            """
-                    )
-                    .setParameter(
-                            "productId",
-                            productId
-                    )
-                    .executeUpdate();
+                session.createMutationQuery(
+                                """
+                                delete from Inventory i
+                                where i.productId = :productId
+                                """
+                        )
+                        .setParameter("productId", productId)
+                        .executeUpdate();
 
-            transaction.commit();
+                transaction.commit();
 
-        } catch (RuntimeException e) {
+            } catch (RuntimeException e) {
 
-            if (transaction != null &&
-                    transaction.isActive()) {
+                if (transaction != null &&
+                        transaction.isActive()) {
 
-                transaction.rollback();
+                    transaction.rollback();
+                }
+
+                throw e;
             }
 
-            throw e;
+            productRepository.deleteById(productId);
         }
 
-
-        productRepository.deleteById(
-                productId
-        );
-
-        customerRepository.deleteById(
-                customerId
-        );
+        customerRepository.deleteById(customerId);
     }
 }

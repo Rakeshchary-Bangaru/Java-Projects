@@ -4,6 +4,7 @@ import com.ecommerce.EcommerceApplication;
 import com.ecommerce.checkout.HibernateCheckoutService;
 import com.ecommerce.repository.ProductRepository;
 import com.ecommerce.service.ProductService;
+import org.springframework.test.context.ActiveProfiles;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +13,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+@ActiveProfiles("test")
 class SpringBootStartupTest {
 
     @Test
@@ -21,7 +22,7 @@ class SpringBootStartupTest {
         try (ConfigurableApplicationContext context =
                      SpringApplication.run(
                              EcommerceApplication.class,
-                             "--spring.main.web-application-type=none"
+                             "--spring.profiles.active=test"
                      )) {
 
             ProductRepository productRepository =

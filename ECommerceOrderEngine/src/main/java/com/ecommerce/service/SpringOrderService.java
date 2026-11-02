@@ -95,4 +95,31 @@ public class SpringOrderService {
 
         return true;
     }
+
+    /*
+     * =========================================================
+     * CUSTOMER-OWNED ORDER HISTORY
+     * ---------------------------------------------------------
+     * Returns only orders belonging to the supplied Customer.
+     *
+     * The controller must obtain customerId from the
+     * authenticated UserAccount relationship, never from
+     * the browser request.
+     * =========================================================
+     */
+    @Transactional(readOnly = true)
+    public List<Order> findByCustomerId(
+            long customerId) {
+
+        if (customerId <= 0) {
+            throw new IllegalArgumentException(
+                    "Customer id must be greater than zero"
+            );
+        }
+
+        return orderRepository
+                .findDetailedByCustomerId(
+                        customerId
+                );
+    }
 }

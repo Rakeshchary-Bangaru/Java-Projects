@@ -107,4 +107,24 @@ public class CustomerService {
 
         customerRepository.deleteById(id);
     }
+
+    @Transactional(readOnly = true)
+    public Customer findByUserAccountIdOrThrow(
+            Long userAccountId) {
+
+        if (userAccountId == null || userAccountId <= 0) {
+            throw new IllegalArgumentException(
+                    "User account id must be greater than zero"
+            );
+        }
+
+        return customerRepository
+                .findByUserAccount_Id(userAccountId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Customer profile not found for authenticated user"
+                        )
+                );
+    }
+
 }

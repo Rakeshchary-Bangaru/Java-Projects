@@ -2,6 +2,8 @@ package com.ecommerce.model;
 
 import jakarta.persistence.*;
 
+import com.ecommerce.security.model.UserAccount;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +33,22 @@ public  class Customer implements Serializable {
 
     @Column(name="email" , nullable = false,unique = true)
     private String email;
+
+    /*
+     * Links this customer profile to the authenticated user account.
+     *
+     * Nullable for legacy customers that existed before V7 security.
+     * New V7 customer accounts will always receive this relationship.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "user_account_id",
+            unique = true,
+            foreignKey = @ForeignKey(
+                    name = "fk_customers_user_account"
+            )
+    )
+    private UserAccount userAccount;
 
     @OneToMany(mappedBy = "customer")
     private List<Order> orders = new ArrayList<>();
@@ -84,6 +102,28 @@ public  class Customer implements Serializable {
 
     public String getEmail() {
         return email;
+    }
+
+    public UserAccount getUserAccount() {
+        return userAccount;
+    }
+
+    /*
+     * Associates this customer profile with its authenticated account.
+     *
+     * A customer profile must never be linked to a null user when
+     * establishing the V7 authentication relationship.
+     */
+    public void assignUserAccount(
+            UserAccount userAccount) {
+
+        if (userAccount == null) {
+            throw new IllegalArgumentException(
+                    "User account cannot be null"
+            );
+        }
+
+        this.userAccount = userAccount;
     }
 
     public List<Order> getOrders() {

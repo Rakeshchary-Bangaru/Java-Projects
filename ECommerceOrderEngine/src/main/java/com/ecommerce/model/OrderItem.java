@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+
 /**
  * Represents an immutable product entry inside an order.
  *
@@ -35,6 +36,19 @@ public  class OrderItem implements Serializable {
     @MapsId("productId")
     @JoinColumn(name = "product_id" , nullable = false)
     private  Product product;
+
+    /*
+     * =========================================================
+     * PURCHASE-TIME SELLER SNAPSHOT
+     * ---------------------------------------------------------
+     * Product.seller may change later.
+     *
+     * This field permanently records which seller owned the
+     * product when this OrderItem was created.
+     * =========================================================
+     */
+    @Column(name = "seller_id")
+    private Long sellerId;
 
     @Column(name = "quantity" , nullable = false)
     private  int quantity;
@@ -74,6 +88,17 @@ public  class OrderItem implements Serializable {
         this.product = product;
         this.quantity = quantity;
 
+        /*
+         * Snapshot seller ownership at purchase time.
+         *
+         * If Product is reassigned later, this OrderItem continues
+         * pointing to the original seller.
+         */
+        this.sellerId =
+                product.getSeller() != null
+                        ? product.getSeller().getId()
+                        : null;
+
         // Capture the purchase-time price so historical order totals remain stable.
         this.unitPrice = BigDecimal.valueOf(product.getPrice()).setScale(2, RoundingMode.HALF_UP);
     }
@@ -107,5 +132,34 @@ public  class OrderItem implements Serializable {
 
         this.order = order;
         this.id = new OrderItemId(order.getId(), product.getId());
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public Long getSellerId() {
+        return sellerId;
+    }
+
+
+    /*
+     * Exact monetary subtotal used by seller-order calculations.
+     *
+     * The existing getSubtotal() method remains for backwards
+     * compatibility with current DTOs/UI.
+     */
+    public BigDecimal getSubtotalAmount() {
+
+        return unitPrice
+                .multiply(
+                        BigDecimal.valueOf(
+                                quantity
+                        )
+                )
+                .setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                );
     }
 }

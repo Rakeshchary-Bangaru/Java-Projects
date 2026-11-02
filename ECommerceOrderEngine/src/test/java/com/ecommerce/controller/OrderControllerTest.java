@@ -1,5 +1,6 @@
 package com.ecommerce.controller;
 
+import com.ecommerce.config.MvcControllerTest;
 import com.ecommerce.exception.ResourceNotFoundException;
 
 import com.ecommerce.model.Customer;
@@ -32,7 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@WebMvcTest(OrderController.class)
+@MvcControllerTest(
+        controllers = OrderController.class
+)
 class OrderControllerTest {
 
     @Autowired

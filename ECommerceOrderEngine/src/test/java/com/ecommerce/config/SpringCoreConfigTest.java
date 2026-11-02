@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
-
+import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.*;
-
+@ActiveProfiles("test")
 class SpringCoreConfigTest {
 
     @Test
@@ -33,7 +33,10 @@ class SpringCoreConfigTest {
         );
 
         try (ConfigurableApplicationContext context =
-                     application.run()) {
+                     SpringApplication.run(
+                             EcommerceApplication.class,
+                             "--spring.profiles.active=test"
+                     )) {
 
             ProductRepository repository =
                     context.getBean(

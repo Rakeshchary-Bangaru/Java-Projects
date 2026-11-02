@@ -345,6 +345,123 @@ class CustomerServiceTest {
                 .findByEmail(email);
     }
 
+    /*
+     * findByUserAccountIdOrThrow()
+     */
+    @Test
+    void shouldReturnCustomerWhenUserAccountIsLinked() {
+
+        Long userAccountId = 101L;
+
+        Customer customer =
+                new Customer(
+                        8101L,
+                        "Rakesh",
+                        "rakesh@email.com"
+                );
+
+        when(
+                customerRepository.findByUserAccount_Id(
+                        userAccountId
+                )
+        )
+                .thenReturn(
+                        Optional.of(customer)
+                );
+
+        Customer result =
+                customerService.findByUserAccountIdOrThrow(
+                        userAccountId
+                );
+
+        assertSame(
+                customer,
+                result
+        );
+
+        assertEquals(
+                8101L,
+                result.getId()
+        );
+
+        verify(customerRepository)
+                .findByUserAccount_Id(
+                        userAccountId
+                );
+    }
+
+
+    /*
+     * findByUserAccountIdOrThrow() missing customer profile
+     */
+    @Test
+    void shouldThrowExceptionWhenUserAccountHasNoCustomerProfile() {
+
+        Long userAccountId = 999L;
+
+        when(
+                customerRepository.findByUserAccount_Id(
+                        userAccountId
+                )
+        )
+                .thenReturn(
+                        Optional.empty()
+                );
+
+        ResourceNotFoundException exception =
+                assertThrows(
+                        ResourceNotFoundException.class,
+                        () ->
+                                customerService
+                                        .findByUserAccountIdOrThrow(
+                                                userAccountId
+                                        )
+                );
+
+        assertEquals(
+                "Customer profile not found for authenticated user",
+                exception.getMessage()
+        );
+
+        verify(customerRepository)
+                .findByUserAccount_Id(
+                        userAccountId
+                );
+    }
+
+
+    /*
+     * findByUserAccountIdOrThrow() invalid user account id
+     */
+    @Test
+    void shouldRejectInvalidUserAccountId() {
+
+        Long userAccountId = 0L;
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                customerService
+                                        .findByUserAccountIdOrThrow(
+                                                userAccountId
+                                        )
+                );
+
+        assertEquals(
+                "User account id must be greater than zero",
+                exception.getMessage()
+        );
+
+        verify(
+                customerRepository,
+                never()
+        )
+                .findByUserAccount_Id(
+                        any(Long.class)
+                );
+    }
+
 
     /*
      * updateEmail()

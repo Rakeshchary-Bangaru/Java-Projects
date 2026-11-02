@@ -32,9 +32,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ecommerce.config.MvcControllerTest;
 
 
-@WebMvcTest(CustomerController.class)
+@MvcControllerTest(controllers = CustomerController.class)
 class CustomerControllerTest {
 
     @Autowired

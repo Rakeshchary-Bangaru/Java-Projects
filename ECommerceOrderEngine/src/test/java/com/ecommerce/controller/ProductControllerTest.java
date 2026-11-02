@@ -13,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.security.core.Authentication;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -23,8 +25,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ecommerce.config.MvcControllerTest;
 
-@WebMvcTest(ProductController.class)
+@MvcControllerTest(controllers = ProductController.class)
 class ProductControllerTest {
 
     @Autowired
@@ -32,6 +35,9 @@ class ProductControllerTest {
 
     @MockitoBean
     private ProductService productService;
+
+    Authentication authentication =
+            mock(Authentication.class);
 
     @Test
     void shouldReturnProductById() throws Exception {
@@ -116,42 +122,36 @@ class ProductControllerTest {
 
         Product savedProduct =
                 new Product(
-                        7001,
+                        7001L,
                         "Laptop",
                         "Electronics",
-                        75000
+                        new BigDecimal("75000.00")
                 );
 
+        Authentication authentication =
+                mock(Authentication.class);
 
         when(
                 productService.save(
-                        any(Product.class)
+                        any(Product.class),
+                        any(Authentication.class)
                 )
-        )
-                .thenReturn(savedProduct);
-
-
-        String requestBody =
-                """
-                {
-                  "id": 7001,
-                  "name": "Laptop",
-                  "category": "Electronics",
-                  "price": 75000
-                }
-                """;
-
+        ).thenReturn(savedProduct);
 
         mockMvc.perform(
                         post("/api/products")
-                                .contentType(
-                                        MediaType.APPLICATION_JSON
-                                )
-                                .content(requestBody)
+                                .principal(authentication)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "id": 7001,
+                                      "name": "Laptop",
+                                      "category": "Electronics",
+                                      "price": 75000.00
+                                    }
+                                    """)
                 )
-                .andExpect(
-                        status().isCreated()
-                )
+                .andExpect(status().isCreated())
                 .andExpect(
                         jsonPath("$.id")
                                 .value(7001)
@@ -166,16 +166,15 @@ class ProductControllerTest {
                 )
                 .andExpect(
                         jsonPath("$.price")
-                                .value(75000)
+                                .value(75000.00)
                 );
-
 
         verify(productService)
                 .save(
-                        any(Product.class)
+                        any(Product.class),
+                        any(Authentication.class)
                 );
     }
-
     @Test
     void shouldReturnBadRequestWhenCreatingInvalidProduct()
             throws Exception {
@@ -206,10 +205,10 @@ class ProductControllerTest {
         verify(
                 productService,
                 never()
-        )
-                .save(
-                        any(Product.class)
-                );
+        ).save(
+                any(Product.class),
+                any()
+        );
     }
 
     @Test

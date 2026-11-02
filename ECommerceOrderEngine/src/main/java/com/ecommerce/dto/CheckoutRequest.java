@@ -14,8 +14,7 @@ public class CheckoutRequest {
     @Positive
     private long orderId;
 
-    @Positive
-    private long customerId;
+
 
     @NotNull
     private PaymentType paymentType;
@@ -32,13 +31,7 @@ public class CheckoutRequest {
         this.orderId = orderId;
     }
 
-    public long getCustomerId() {
-        return customerId;
-    }
 
-    public void setCustomerId(long customerId) {
-        this.customerId = customerId;
-    }
 
     public PaymentType getPaymentType() {
         return paymentType;

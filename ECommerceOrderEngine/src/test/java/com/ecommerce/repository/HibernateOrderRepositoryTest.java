@@ -1,3 +1,4 @@
+
 package com.ecommerce.repository;
 
 import com.ecommerce.model.Customer;
@@ -9,6 +10,7 @@ import com.ecommerce.model.Product;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,65 +31,98 @@ class HibernateOrderRepositoryTest {
         OrderRepository orderRepository =
                 new HibernateOrderRepository();
 
-        long productId = 980301L;
+        /*
+         * Only the product ID is generated automatically.
+         * Customer and order IDs retain their current
+         * manually assigned values.
+         */
         long customerId = 980301L;
         long orderId = 980301L;
 
+        Long productId = null;
+
         /*
-         * Cleanup in case a previous interrupted
-         * run left test data behind.
+         * Cleanup leftover order/customer records from
+         * an interrupted previous test run.
          */
         orderRepository.deleteById(orderId);
-        productRepository.deleteById(productId);
         customerRepository.deleteById(customerId);
 
-        Product product =
-                new Product(
-                        productId,
-                        "Hibernate Order Product",
-                        "Testing",
-                        59.99
-                );
+        /*
+         * Create product WITHOUT a manually assigned ID.
+         */
+        Product product = new Product(
+                "Hibernate Order Product",
+                "Testing",
+                new BigDecimal("59.99"),
+                "Product used for Hibernate order repository testing",
+                "TestBrand"
+        );
 
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Hibernate Order Customer",
-                        "hibernate.order@example.com"
-                );
+        Customer customer = new Customer(
+                customerId,
+                "Hibernate Order Customer",
+                "hibernate.order@example.com"
+        );
 
         try {
 
+            /*
+             * =================================================
+             * SAVE PRODUCT AND CUSTOMER
+             * =================================================
+             */
             productRepository.save(product);
+
+            productId = product.getId();
+
+            assertNotNull(productId);
+            assertTrue(productId > 0);
+
             customerRepository.save(customer);
 
-            OrderItem item =
-                    new OrderItem(
-                            product,
-                            2
-                    );
+            /*
+             * =================================================
+             * CREATE ORDER ITEM
+             * =================================================
+             */
+            OrderItem item = new OrderItem(
+                    product,
+                    2
+            );
 
             OrderStatus initialStatus =
                     OrderStatus.values()[0];
 
-            Order order =
-                    Order.restore(
-                            orderId,
-                            customer,
-                            List.of(item),
-                            PaymentType.CARD,
-                            initialStatus,
-                            LocalDateTime.now()
-                    );
+            /*
+             * =================================================
+             * CREATE ORDER
+             * =================================================
+             */
+            Order order = Order.restore(
+                    orderId,
+                    customer,
+                    List.of(item),
+                    PaymentType.CARD,
+                    initialStatus,
+                    LocalDateTime.now()
+            );
 
-            // SAVE
+            /*
+             * =================================================
+             * SAVE ORDER
+             * =================================================
+             */
             orderRepository.save(order);
 
-            // FIND
-            Order found =
-                    orderRepository
-                            .findById(orderId)
-                            .orElseThrow();
+            /*
+             * =================================================
+             * FIND ORDER
+             * =================================================
+             */
+            Order found = orderRepository
+                    .findById(orderId)
+                    .orElseThrow();
 
             assertEquals(
                     orderId,
@@ -104,8 +139,12 @@ class HibernateOrderRepositoryTest {
                     found.getItems().size()
             );
 
+            /*
+             * Verify the order item references
+             * the database-generated product ID.
+             */
             assertEquals(
-                    productId,
+                    productId.longValue(),
                     found.getItems()
                             .get(0)
                             .getProduct()
@@ -126,21 +165,25 @@ class HibernateOrderRepositoryTest {
                     0.001
             );
 
-
-            // FIND ALL
+            /*
+             * =================================================
+             * FIND ALL ORDERS
+             * =================================================
+             */
             assertTrue(
                     orderRepository
                             .findAll()
                             .stream()
-                            .anyMatch(
-                                    existingOrder ->
-                                            existingOrder.getId()
-                                                    == orderId
+                            .anyMatch(existingOrder ->
+                                    existingOrder.getId() == orderId
                             )
             );
 
-
-            // UPDATE STATUS
+            /*
+             * =================================================
+             * UPDATE ORDER STATUS
+             * =================================================
+             */
             OrderStatus[] statuses =
                     OrderStatus.values();
 
@@ -154,22 +197,22 @@ class HibernateOrderRepositoryTest {
                     updatedStatus
             );
 
-            Order updated =
-                    orderRepository
-                            .findById(orderId)
-                            .orElseThrow();
+            Order updated = orderRepository
+                    .findById(orderId)
+                    .orElseThrow();
 
             assertEquals(
                     updatedStatus,
                     updated.getStatus()
             );
 
-
-            // DELETE
+            /*
+             * =================================================
+             * DELETE ORDER
+             * =================================================
+             */
             boolean deleted =
-                    orderRepository.deleteById(
-                            orderId
-                    );
+                    orderRepository.deleteById(orderId);
 
             assertTrue(deleted);
 
@@ -181,17 +224,20 @@ class HibernateOrderRepositoryTest {
 
         } finally {
 
-            orderRepository.deleteById(
-                    orderId
-            );
+            /*
+             * Cleanup order first because order_items
+             * references the product.
+             */
+            orderRepository.deleteById(orderId);
 
-            productRepository.deleteById(
-                    productId
-            );
+            /*
+             * Delete only this test's generated product.
+             */
+            if (productId != null) {
+                productRepository.deleteById(productId);
+            }
 
-            customerRepository.deleteById(
-                    customerId
-            );
+            customerRepository.deleteById(customerId);
         }
     }
 }

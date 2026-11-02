@@ -1,3 +1,4 @@
+
 package com.ecommerce.checkout;
 
 import com.ecommerce.EcommerceApplication;
@@ -29,12 +30,12 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
-
 
 @SpringBootTest(classes = EcommerceApplication.class)
 class SpringCheckoutServiceTest {
@@ -60,71 +61,61 @@ class SpringCheckoutServiceTest {
     @Autowired
     private SpringInventoryService inventoryService;
 
-
     @MockitoBean
     private PaymentProcessorProvider paymentProcessorProvider;
 
-
+    /*
+     * =========================================================
+     * TEST 1 - SUCCESSFUL CHECKOUT
+     * =========================================================
+     */
     @Test
     void shouldCompleteCheckoutSuccessfully() {
 
-        long productId = 981501L;
         long customerId = 981501L;
         long orderId = 981501L;
 
-        cleanup(
-                productId,
-                customerId,
-                orderId
+        Long productId = null;
+
+        cleanup(null, customerId, orderId);
+
+        Product product = new Product(
+                "Spring Checkout Product",
+                "Testing",
+                new BigDecimal("50.00"),
+                "Product for successful checkout testing",
+                "TestBrand"
         );
 
-
-        Product product =
-                new Product(
-                        productId,
-                        "Spring Checkout Product",
-                        "Testing",
-                        50.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Spring Checkout Customer",
-                        "spring.checkout@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Spring Checkout Customer",
+                "spring.checkout@example.com"
+        );
 
         try {
 
-            productRepository.saveAndFlush(
-                    product
-            );
+            Product savedProduct =
+                    productRepository.saveAndFlush(product);
 
-            customerRepository.saveAndFlush(
-                    customer
-            );
+            productId = savedProduct.getId();
 
-            inventoryService.setStock(
-                    productId,
-                    5
-            );
+            assertNotNull(productId);
+            assertTrue(productId > 0);
 
+            customerRepository.saveAndFlush(customer);
+
+            inventoryService.setStock(productId, 5);
 
             Cart cart = new Cart();
 
-            cart.addProduct(
-                    product,
-                    2
-            );
-
+            cart.addProduct(savedProduct, 2);
 
             PaymentStrategy successfulStrategy =
                     new PaymentStrategy() {
 
                         @Override
-                        public PaymentResult pay(
-                                double amount) {
+                        public PaymentResult pay(double amount) {
 
                             return new PaymentResult(
                                     true,
@@ -135,26 +126,18 @@ class SpringCheckoutServiceTest {
                         }
                     };
 
-
             when(
-                    paymentProcessorProvider.get(
-                            PaymentType.CARD
-                    )
+                    paymentProcessorProvider.get(PaymentType.CARD)
             ).thenReturn(
-                    new PaymentProcessor(
-                            successfulStrategy
-                    )
+                    new PaymentProcessor(successfulStrategy)
             );
 
-
-            Order order =
-                    checkoutService.checkout(
-                            orderId,
-                            customer,
-                            cart,
-                            PaymentType.CARD
-                    );
-
+            Order order = checkoutService.checkout(
+                    orderId,
+                    customer,
+                    cart,
+                    PaymentType.CARD
+            );
 
             assertNotNull(order);
 
@@ -174,212 +157,173 @@ class SpringCheckoutServiceTest {
                     0.001
             );
 
-
+            // Initial stock: 5
+            // Purchased: 2
+            // Remaining: 3
             assertEquals(
                     3,
-                    inventoryService.getStock(
-                            productId
-                    )
+                    inventoryService.getStock(productId)
             );
-
 
             assertTrue(
-                    orderRepository.existsById(
-                            orderId
-                    )
+                    orderRepository.existsById(orderId)
             );
-
 
             assertEquals(
                     1,
                     paymentRepository
-                            .findByOrder_IdOrderByIdAsc(
-                                    orderId
-                            )
+                            .findByOrder_IdOrderByIdAsc(orderId)
                             .size()
             );
 
-
             assertTrue(
                     paymentRepository
-                            .findTopByOrder_IdOrderByIdDesc(
-                                    orderId
-                            )
+                            .findTopByOrder_IdOrderByIdDesc(orderId)
                             .orElseThrow()
                             .isSuccessful()
             );
 
         } finally {
 
-            cleanup(
-                    productId,
-                    customerId,
-                    orderId
-            );
+            cleanup(productId, customerId, orderId);
         }
     }
 
-
+    /*
+     * =========================================================
+     * TEST 2 - INSUFFICIENT STOCK ROLLBACK
+     * =========================================================
+     */
     @Test
     void shouldRollbackWhenStockIsInsufficient() {
 
-        long productId = 981502L;
         long customerId = 981502L;
         long orderId = 981502L;
 
-        cleanup(
-                productId,
-                customerId,
-                orderId
+        Long productId = null;
+
+        cleanup(null, customerId, orderId);
+
+        Product product = new Product(
+                "Insufficient Stock Product",
+                "Testing",
+                new BigDecimal("25.00"),
+                "Product for insufficient stock testing",
+                "TestBrand"
         );
 
-
-        Product product =
-                new Product(
-                        productId,
-                        "Insufficient Stock Product",
-                        "Testing",
-                        25.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Insufficient Stock Customer",
-                        "spring.stock@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Insufficient Stock Customer",
+                "spring.stock@example.com"
+        );
 
         try {
 
-            productRepository.saveAndFlush(
-                    product
-            );
+            Product savedProduct =
+                    productRepository.saveAndFlush(product);
 
-            customerRepository.saveAndFlush(
-                    customer
-            );
+            productId = savedProduct.getId();
 
-            inventoryService.setStock(
-                    productId,
-                    1
-            );
+            assertNotNull(productId);
+            assertTrue(productId > 0);
 
+            customerRepository.saveAndFlush(customer);
+
+            // Only one item is available.
+            inventoryService.setStock(productId, 1);
 
             Cart cart = new Cart();
 
-            cart.addProduct(
-                    product,
-                    2
-            );
-
+            // Customer requests two items.
+            cart.addProduct(savedProduct, 2);
 
             assertThrows(
                     InsufficientStockException.class,
-                    () ->
-                            checkoutService.checkout(
-                                    orderId,
-                                    customer,
-                                    cart,
-                                    PaymentType.CARD
-                            )
+                    () -> checkoutService.checkout(
+                            orderId,
+                            customer,
+                            cart,
+                            PaymentType.CARD
+                    )
             );
 
-
+            // Insufficient stock must not reduce inventory.
             assertEquals(
                     1,
-                    inventoryService.getStock(
-                            productId
-                    )
+                    inventoryService.getStock(productId)
             );
 
-
+            // No order should be saved.
             assertFalse(
-                    orderRepository.existsById(
-                            orderId
-                    )
+                    orderRepository.existsById(orderId)
             );
 
-
+            // No payment record should be saved.
             assertTrue(
                     paymentRepository
-                            .findByOrder_IdOrderByIdAsc(
-                                    orderId
-                            )
+                            .findByOrder_IdOrderByIdAsc(orderId)
                             .isEmpty()
             );
 
         } finally {
 
-            cleanup(
-                    productId,
-                    customerId,
-                    orderId
-            );
+            cleanup(productId, customerId, orderId);
         }
     }
 
-
+    /*
+     * =========================================================
+     * TEST 3 - PAYMENT FAILURE ROLLBACK
+     * =========================================================
+     */
     @Test
     void shouldRollbackInventoryWhenPaymentFails() {
 
-        long productId = 981503L;
         long customerId = 981503L;
         long orderId = 981503L;
 
-        cleanup(
-                productId,
-                customerId,
-                orderId
+        Long productId = null;
+
+        cleanup(null, customerId, orderId);
+
+        Product product = new Product(
+                "Payment Failure Product",
+                "Testing",
+                new BigDecimal("40.00"),
+                "Product for payment rollback testing",
+                "TestBrand"
         );
 
-
-        Product product =
-                new Product(
-                        productId,
-                        "Payment Failure Product",
-                        "Testing",
-                        40.00
-                );
-
-        Customer customer =
-                new Customer(
-                        customerId,
-                        "Payment Failure Customer",
-                        "spring.failure@example.com"
-                );
-
+        Customer customer = new Customer(
+                customerId,
+                "Payment Failure Customer",
+                "spring.failure@example.com"
+        );
 
         try {
 
-            productRepository.saveAndFlush(
-                    product
-            );
+            Product savedProduct =
+                    productRepository.saveAndFlush(product);
 
-            customerRepository.saveAndFlush(
-                    customer
-            );
+            productId = savedProduct.getId();
 
-            inventoryService.setStock(
-                    productId,
-                    5
-            );
+            assertNotNull(productId);
+            assertTrue(productId > 0);
 
+            customerRepository.saveAndFlush(customer);
+
+            inventoryService.setStock(productId, 5);
 
             Cart cart = new Cart();
 
-            cart.addProduct(
-                    product,
-                    2
-            );
-
+            cart.addProduct(savedProduct, 2);
 
             PaymentStrategy failedStrategy =
                     new PaymentStrategy() {
 
                         @Override
-                        public PaymentResult pay(
-                                double amount) {
+                        public PaymentResult pay(double amount) {
 
                             return new PaymentResult(
                                     false,
@@ -390,92 +334,92 @@ class SpringCheckoutServiceTest {
                         }
                     };
 
-
             when(
-                    paymentProcessorProvider.get(
-                            PaymentType.CARD
-                    )
+                    paymentProcessorProvider.get(PaymentType.CARD)
             ).thenReturn(
-                    new PaymentProcessor(
-                            failedStrategy
-                    )
+                    new PaymentProcessor(failedStrategy)
             );
-
 
             assertThrows(
                     PaymentFailedException.class,
-                    () ->
-                            checkoutService.checkout(
-                                    orderId,
-                                    customer,
-                                    cart,
-                                    PaymentType.CARD
-                            )
+                    () -> checkoutService.checkout(
+                            orderId,
+                            customer,
+                            cart,
+                            PaymentType.CARD
+                    )
             );
 
-
             /*
-             * This is the important @Transactional test.
+             * Transaction rollback verification:
              *
-             * reserveStock changed:
+             * Initial stock: 5
+             * Reserved stock: 3
              *
-             * 5 -> 3
+             * Payment fails.
              *
-             * Payment then failed.
-             *
-             * Spring must roll the entire transaction back:
-             *
-             * 3 -> 5
+             * The entire transaction must roll back.
+             * Final stock must remain 5.
              */
             assertEquals(
                     5,
-                    inventoryService.getStock(
-                            productId
-                    )
+                    inventoryService.getStock(productId)
             );
 
-
+            // Failed payment must not create an order.
             assertFalse(
-                    orderRepository.existsById(
-                            orderId
-                    )
+                    orderRepository.existsById(orderId)
             );
 
-
+            // Failed checkout must not retain payment attempts.
             assertTrue(
                     paymentRepository
-                            .findByOrder_IdOrderByIdAsc(
-                                    orderId
-                            )
+                            .findByOrder_IdOrderByIdAsc(orderId)
                             .isEmpty()
             );
 
         } finally {
 
-            cleanup(
-                    productId,
-                    customerId,
-                    orderId
-            );
+            cleanup(productId, customerId, orderId);
         }
     }
 
-
+    /*
+     * =========================================================
+     * TEST DATA CLEANUP
+     * =========================================================
+     *
+     * Cleanup order:
+     *
+     * 1. Order and dependent records
+     * 2. Inventory
+     * 3. Product
+     * 4. Customer
+     *
+     * Product IDs are generated by MySQL.
+     *
+     * Null productId means that product creation
+     * did not complete or has not yet occurred.
+     */
     private void cleanup(
-            long productId,
+            Long productId,
             long customerId,
-            long orderId) {
+            long orderId
+    ) {
 
         if (orderRepository.existsById(orderId)) {
             orderRepository.deleteById(orderId);
         }
 
-        if (inventoryRepository.existsById(productId)) {
-            inventoryRepository.deleteById(productId);
-        }
+        if (productId != null) {
 
-        if (productRepository.existsById(productId)) {
-            productRepository.deleteById(productId);
+            if (inventoryRepository.existsById(productId)) {
+                inventoryRepository.deleteById(productId);
+            }
+
+            if (productRepository.existsById(productId)) {
+                productRepository.deleteById(productId);
+            }
         }
 
         if (customerRepository.existsById(customerId)) {
