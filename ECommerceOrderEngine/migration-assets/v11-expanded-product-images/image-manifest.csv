@@ -1,0 +1,43 @@
+category_folder,filename,suggested_product_name,relative_path
+electronics,gaming-mouse.png,Gaming Mouse,electronics/gaming-mouse.png
+electronics,usb-c-hub.png,USB-C Hub,electronics/usb-c-hub.png
+electronics,bluetooth-speaker.png,Bluetooth Speaker,electronics/bluetooth-speaker.png
+electronics,webcam.png,Webcam,electronics/webcam.png
+electronics,external-ssd-1tb.png,External SSD 1TB,electronics/external-ssd-1tb.png
+electronics,27-inch-monitor.png,27-inch Monitor,electronics/27-inch-monitor.png
+electronics,mechanical-gaming-keyboard.png,Mechanical Gaming Keyboard,electronics/mechanical-gaming-keyboard.png
+mobiles,budget-5g-smartphone.png,Budget 5G Smartphone,mobiles/budget-5g-smartphone.png
+mobiles,premium-smartphone.png,Premium Smartphone,mobiles/premium-smartphone.png
+mobiles,wireless-earbuds.png,Wireless Earbuds,mobiles/wireless-earbuds.png
+mobiles,power-bank-20000mah.png,Power Bank 20000mAh,mobiles/power-bank-20000mah.png
+mobiles,fast-charger-65w.png,Fast Charger 65W,mobiles/fast-charger-65w.png
+mobiles,tablet-keyboard-case.png,Tablet Keyboard Case,mobiles/tablet-keyboard-case.png
+mobiles,fitness-band.png,Fitness Band,mobiles/fitness-band.png
+home-appliances,air-fryer.png,Air Fryer,home-appliances/air-fryer.png
+home-appliances,mixer-grinder.png,Mixer Grinder,home-appliances/mixer-grinder.png
+home-appliances,electric-kettle.png,Electric Kettle,home-appliances/electric-kettle.png
+home-appliances,vacuum-cleaner.png,Vacuum Cleaner,home-appliances/vacuum-cleaner.png
+home-appliances,air-purifier.png,Air Purifier,home-appliances/air-purifier.png
+home-appliances,induction-cooktop.png,Induction Cooktop,home-appliances/induction-cooktop.png
+home-appliances,toaster.png,Toaster,home-appliances/toaster.png
+fashion,hoodie.png,Hoodie,fashion/hoodie.png
+fashion,casual-shirt.png,Casual Shirt,fashion/casual-shirt.png
+fashion,running-shoes.png,Running Shoes,fashion/running-shoes.png
+fashion,backpack.png,Backpack,fashion/backpack.png
+fashion,jacket.png,Jacket,fashion/jacket.png
+fashion,cap.png,Cap,fashion/cap.png
+fashion,wrist-watch.png,Wrist Watch,fashion/wrist-watch.png
+books,python-programming-book.png,Python Programming Book,books/python-programming-book.png
+books,javascript-guide.png,JavaScript Guide,books/javascript-guide.png
+books,react-development-book.png,React Development Book,books/react-development-book.png
+books,sql-essentials-book.png,SQL Essentials Book,books/sql-essentials-book.png
+books,cloud-computing-book.png,Cloud Computing Book,books/cloud-computing-book.png
+books,system-design-book.png,System Design Book,books/system-design-book.png
+books,clean-code-practices-book.png,Clean Code Practices Book,books/clean-code-practices-book.png
+sports,basketball.png,Basketball,sports/basketball.png
+sports,badminton-racket.png,Badminton Racket,sports/badminton-racket.png
+sports,resistance-bands-set.png,Resistance Bands Set,sports/resistance-bands-set.png
+sports,dumbbells-5kg-pair.png,Dumbbells 5kg Pair,sports/dumbbells-5kg-pair.png
+sports,skipping-rope.png,Skipping Rope,sports/skipping-rope.png
+sports,tennis-racket.png,Tennis Racket,sports/tennis-racket.png
+sports,gym-bag.png,Gym Bag,sports/gym-bag.png

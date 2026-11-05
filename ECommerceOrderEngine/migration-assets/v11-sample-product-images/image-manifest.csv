@@ -1,0 +1,19 @@
+category_folder,filename,suggested_product_name,relative_path
+electronics,laptop.png,Laptop,electronics/laptop.png
+electronics,headphones.png,Headphones,electronics/headphones.png
+electronics,keyboard.png,Mechanical Keyboard,electronics/keyboard.png
+home-appliances,refrigerator.png,Refrigerator,home-appliances/refrigerator.png
+home-appliances,washing-machine.png,Washing Machine,home-appliances/washing-machine.png
+home-appliances,microwave.png,Microwave,home-appliances/microwave.png
+mobiles,smartphone.png,Smartphone,mobiles/smartphone.png
+mobiles,tablet.png,Tablet,mobiles/tablet.png
+mobiles,smartwatch.png,Smartwatch,mobiles/smartwatch.png
+fashion,tshirt.png,T-Shirt,fashion/tshirt.png
+fashion,jeans.png,Jeans,fashion/jeans.png
+fashion,sneakers.png,Sneakers,fashion/sneakers.png
+books,book-java.png,Java Programming Book,books/book-java.png
+books,book-spring.png,Spring Boot Book,books/book-spring.png
+books,book-dsa.png,DSA Book,books/book-dsa.png
+sports,football.png,Football,sports/football.png
+sports,cricket-bat.png,Cricket Bat,sports/cricket-bat.png
+sports,yoga-mat.png,Yoga Mat,sports/yoga-mat.png

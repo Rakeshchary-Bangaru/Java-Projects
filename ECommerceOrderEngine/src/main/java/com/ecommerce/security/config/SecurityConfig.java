@@ -35,6 +35,14 @@ import com.ecommerce.security.handler.GoogleOAuth2SuccessHandler;
 
 import org.springframework.beans.factory.annotation.Value;
 
+import org.springframework.security.config.Customizer;
+
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
 
 @Configuration
 @EnableWebSecurity
@@ -155,6 +163,7 @@ public class SecurityConfig {
                  * REST API uses Bearer JWT authentication.
                  * =================================================
                  */
+                .cors(Customizer.withDefaults())
                 .csrf(csrf ->
                         csrf.disable()
                 )
@@ -346,4 +355,51 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.frontend.url:http://localhost:5173}")
+            String frontendUrl
+    ) {
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                List.of(
+                        frontendUrl.replaceAll("/+$", "")
+                )
+        );
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
+        );
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/api/**",
+                configuration
+        );
+
+        return source;
+    }
+
 }

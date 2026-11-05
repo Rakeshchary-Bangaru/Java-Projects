@@ -25,8 +25,15 @@ import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 
 @Service
+@ConditionalOnProperty(
+        name = "app.images.storage.type",
+        havingValue = "local",
+        matchIfMissing = true
+)
 @EnableConfigurationProperties(ProductImageStorageProperties.class)
 public class LocalProductImageStorageService
         implements ProductImageStorageService {

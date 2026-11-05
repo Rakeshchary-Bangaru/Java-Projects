@@ -1,0 +1,43 @@
+name,category,price,description,brand,stock
+Gaming Mouse,Electronics,1899,Ergonomic RGB wired gaming mouse,DemoTech,38
+USB-C Hub,Electronics,2499,Multiport USB-C adapter with HDMI and USB,DemoTech,22
+Bluetooth Speaker,Electronics,3499,Portable wireless Bluetooth speaker,DemoSound,26
+Webcam,Electronics,2799,Full HD webcam for meetings,DemoTech,20
+External SSD 1TB,Electronics,7499,Portable high speed solid state drive,DemoStorage,18
+27-inch Monitor,Electronics,16999,Full HD IPS computer monitor,DemoDisplay,12
+Mechanical Gaming Keyboard,Electronics,4999,RGB mechanical keyboard for gaming,DemoKeys,20
+Budget 5G Smartphone,Mobiles,14999,Affordable 5G Android smartphone,Demo Mobile,30
+Premium Smartphone,Mobiles,54999,Premium smartphone with OLED display,Demo Mobile,16
+Wireless Earbuds,Mobiles,2499,True wireless earbuds with charging case,Demo Audio,34
+Power Bank 20000mAh,Mobiles,2299,High capacity portable power bank,Demo Power,42
+Fast Charger 65W,Mobiles,1999,USB-C 65W fast charger,Demo Power,45
+Tablet Keyboard Case,Mobiles,2999,Keyboard protective case for tablets,Demo Mobile,21
+Fitness Band,Mobiles,1999,Fitness band with activity tracking,Demo Wearables,37
+Air Fryer,Home Appliances,6499,Digital air fryer with multiple cooking modes,Demo Home,19
+Mixer Grinder,Home Appliances,3999,Three jar kitchen mixer grinder,Demo Home,25
+Electric Kettle,Home Appliances,1499,Stainless steel electric kettle,Demo Home,42
+Vacuum Cleaner,Home Appliances,8999,Compact vacuum cleaner for home use,Demo Home,13
+Air Purifier,Home Appliances,12499,Air purifier with HEPA filter,Demo Home,11
+Induction Cooktop,Home Appliances,2999,Portable induction cooktop,Demo Home,27
+Toaster,Home Appliances,1999,Two slice pop up toaster,Demo Home,31
+Hoodie,Fashion,1799,Cotton blend everyday hoodie,Demo Fashion,35
+Casual Shirt,Fashion,1299,Long sleeve casual shirt,Demo Fashion,41
+Running Shoes,Fashion,3499,Lightweight running shoes,Demo Footwear,23
+Backpack,Fashion,2199,Water resistant daypack,Demo Bags,29
+Jacket,Fashion,3299,Lightweight outdoor jacket,Demo Fashion,19
+Cap,Fashion,499,Adjustable everyday baseball cap,Demo Accessories,52
+Wrist Watch,Fashion,2699,Minimal analog wrist watch,Demo Accessories,17
+Python Programming Book,Books,849,Beginner friendly Python programming guide,Demo Books,44
+JavaScript Guide,Books,749,Modern JavaScript fundamentals,Demo Books,39
+React Development Book,Books,999,Building user interfaces with React,Demo Books,26
+SQL Essentials Book,Books,699,Relational database queries and design,Demo Books,46
+Cloud Computing Book,Books,1099,Introduction to cloud architecture,Demo Books,24
+System Design Book,Books,1299,Scalable systems and architecture basics,Demo Books,28
+Clean Code Practices Book,Books,899,Readable and maintainable software techniques,Demo Books,33
+Basketball,Sports,1199,Indoor outdoor basketball,Demo Sports,30
+Badminton Racket,Sports,1599,Lightweight badminton racket,Demo Sports,26
+Resistance Bands Set,Sports,899,Set of elastic resistance bands,Demo Fitness,42
+Dumbbells 5kg Pair,Sports,2499,Pair of five kilogram dumbbells,Demo Fitness,16
+Skipping Rope,Sports,399,Adjustable jump rope,Demo Fitness,55
+Tennis Racket,Sports,3299,Recreational tennis racket,Demo Sports,15
+Gym Bag,Sports,1299,Compact gym and sports duffel bag,Demo Sports,34

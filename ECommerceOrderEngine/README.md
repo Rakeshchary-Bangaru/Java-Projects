@@ -1,32 +1,71 @@
+
 # High-Throughput E-Commerce Order Processing & Analytics Engine
 
 ## Overview
 
-`ECommerceOrderEngine` is a Java-based e-commerce backend project designed to demonstrate the progressive development of an order-processing system from Core Java to database-backed application architecture.
+`ECommerceOrderEngine` is a full-stack e-commerce application developed progressively from a Core Java order-processing engine into a secure, database-backed, cloud-deployed application.
 
-The project currently contains four major versions:
+The project demonstrates the evolution of enterprise application development through Java, JDBC, Servlets, Hibernate, Spring Boot, REST APIs, React, Spring Security, and AWS.
 
-- **V1 – Core Java:** In-memory inventory, payment strategies, concurrent checkout processing, notifications, analytics, file persistence, and serialization.
-- **V2 – Maven + JDBC + MySQL:** Relational database persistence, repository pattern, JDBC transactions, atomic inventory reservation, rollback handling, and database-level concurrency control.
-- **V3 – Servlets + JSP + Tomcat:** Server-rendered web application with Product and Customer CRUD, session-based cart management, transactional checkout, order and inventory views, JSTL/EL, friendly error handling, shared navigation/CSS, and isolated development/test databases.
-- **V4 – Hibernate + JPA:** Replaces the active JDBC persistence layer with Hibernate/JPA entity mappings and Hibernate repository implementations while preserving the existing Servlet/JSP web application, atomic stock reservation, checkout transactions, and rollback guarantees.
+Rather than building separate applications for each technology, the project progressively introduces new architectural layers, persistence mechanisms, security capabilities, and infrastructure.
 
-The project focuses on object-oriented design, SOLID principles, design patterns, concurrency, database programming, ORM/JPA, transaction management, exception handling, layered architecture, and automated testing.
+**Current Version: V7**
+
+**Live Application:** https://dsohu6n1v0a1o.cloudfront.net
+
+### Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React, JavaScript, Vite, HTML, CSS |
+| Backend | Java 21, Spring Boot 4.1.1 |
+| REST API | Spring Web MVC |
+| Persistence | Spring Data JPA, Hibernate |
+| Database | MySQL |
+| Security | Spring Security, JWT, Google OAuth2 |
+| Bot Protection | Google reCAPTCHA Enterprise |
+| Logging | Log4j2 |
+| Cross-Cutting Concerns | Spring AOP |
+| Monitoring | Spring Boot Actuator, Micrometer |
+| Database Migrations | Flyway |
+| Testing | JUnit 5, Mockito, Spring Boot Test |
+| Cloud | AWS EC2, RDS, S3, CloudFront |
+| Reverse Proxy | Nginx |
+| Build Tools | Maven, npm, Vite |
 
 ---
 
-## V1 – Core Java
+## Project Evolution
 
-V1 implements the order-processing system using Core Java and in-memory data structures.
+| Version | Implementation |
+|---|---|
+| V1 | Core Java, OOP, concurrency and design patterns |
+| V2 | Maven, JDBC, MySQL and database transactions |
+| V3 | Servlets, JSP, JSTL and Apache Tomcat |
+| V4 | Hibernate ORM and JPA |
+| V5 | Spring Framework and Spring Boot |
+| V6 | REST APIs, Spring Data JPA, React and Spring AOP |
+| V7 | Spring Security, JWT, OAuth2, Log4j2, monitoring and AWS |
+| V8 | Spring AI (Planned) |
+| V9 | Docker and Microservices (Planned) |
+| V10 | Kubernetes, Docker and Jenkins CI/CD (Planned) |
 
-### Features
+---
+
+# V1 – Core Java
+
+V1 implements the e-commerce order-processing system using Core Java and in-memory data structures.
+
+The objective of this version was to establish a strong foundation in object-oriented programming, design patterns, concurrency, and application business logic.
+
+## V1 Features
 
 - Product and customer management
 - Shopping cart operations
 - In-memory inventory management
 - Thread-safe inventory reservation
 - Concurrent checkout processing
-- Card, UPI, and Wallet payment strategies
+- Card, UPI and Wallet payment strategies
 - Checkout rollback handling
 - Order creation using Builder pattern
 - Payment Strategy pattern
@@ -38,7 +77,7 @@ V1 implements the order-processing system using Core Java and in-memory data str
 - Custom exceptions
 - Unit and concurrency testing
 
-### Core Java Concepts
+## Core Java Concepts
 
 - Object-Oriented Programming
 - Java Collections Framework
@@ -56,18 +95,87 @@ V1 implements the order-processing system using Core Java and in-memory data str
 - SOLID Principles
 - Design Patterns
 
+## V1 Architecture
+
+```text
+                  Customer
+                     |
+                     v
+                Shopping Cart
+                     |
+                     v
+               CheckoutService
+                     |
+          +----------+----------+
+          |          |          |
+          v          v          v
+      Inventory   Payment     Order
+       Service    Processor   Creation
+          |          |          |
+          +----------+----------+
+                     |
+                     v
+              Order Notification
+                     |
+                     v
+                  Analytics
+```
+
+## Design Patterns
+
+### Strategy Pattern
+
+Used to support multiple payment implementations:
+
+```text
+PaymentStrategy
+     |
+     +---- CardPaymentStrategy
+     |
+     +---- UpiPaymentStrategy
+     |
+     +---- WalletPaymentStrategy
+```
+
+### Factory Pattern
+
+`PaymentFactory` selects the appropriate payment strategy.
+
+### Builder Pattern
+
+Used to construct `Order` objects.
+
+### Observer Pattern
+
+Used for order notifications and analytics processing.
+
+## Concurrency
+
+V1 uses Java concurrency utilities to support multiple checkout requests.
+
+Important concurrency components include:
+
+```text
+ExecutorService
+CountDownLatch
+ConcurrentHashMap
+AtomicInteger
+```
+
+The checkout implementation demonstrates thread-safe stock reservation and prevents multiple threads from purchasing more stock than is available.
+
 ---
 
 # V2 – Maven + JDBC + MySQL
 
 V2 extends the Core Java application by introducing persistent relational storage and transaction-based checkout processing.
 
-Instead of storing application state only in memory, products, customers, inventory, orders, order items, and payments are now persisted in MySQL.
+Instead of storing application state only in memory, products, customers, inventory, orders, order items and payments are persisted in MySQL.
 
 ## V2 Features
 
 - Maven-based project structure
-- MySQL database integration
+- MySQL integration
 - JDBC connectivity
 - Repository pattern
 - Product CRUD operations
@@ -84,57 +192,35 @@ Instead of storing application state only in memory, products, customers, invent
 - Database validation constraints
 - Concurrent database checkout processing
 - Prevention of inventory overselling
-- Environment-variable based database credentials
+- Environment-variable-based database credentials
 - Database integration testing
-- 206 automated tests
-
----
 
 ## V2 Architecture
 
 ```text
-                    Application
-                         |
-                         v
-                JdbcCheckoutService
-                         |
-          +--------------+---------------+
-          |              |               |
-          v              v               v
- InventoryRepository  OrderRepository  PaymentRepository
-          |              |               |
-          v              v               v
- JdbcInventoryRepo   JdbcOrderRepo   JdbcPaymentRepo
-          |              |               |
-          +--------------+---------------+
-                         |
-                         v
-                        JDBC
-                         |
-                         v
-                       MySQL
+                   Application
+                        |
+                        v
+                 JdbcCheckoutService
+                        |
+           +------------+------------+
+           |            |            |
+           v            v            v
+      InventoryRepo   OrderRepo   PaymentRepo
+           |            |            |
+           v            v            v
+      JDBC Inventory JDBC Order  JDBC Payment
+           |            |            |
+           +------------+------------+
+                        |
+                        v
+                       JDBC
+                        |
+                        v
+                      MySQL
 ```
 
-The checkout service contains the business workflow, while repositories handle SQL and persistence operations.
-
-```text
-Business Logic
-    |
-    v
-JdbcCheckoutService
-
-Persistence Logic
-    |
-    v
-JDBC Repositories
-
-Database
-    |
-    v
-MySQL
-```
-
----
+The checkout service handles the business workflow, while repositories handle SQL and persistence operations.
 
 ## Transactional Checkout
 
@@ -142,68 +228,65 @@ V2 performs checkout using a single JDBC connection and database transaction.
 
 ```text
 BEGIN TRANSACTION
-       |
-       v
+        |
+        v
 Reserve Inventory
-       |
-       v
+        |
+        v
 Calculate Order Total
-       |
-       v
+        |
+        v
 Process Payment
-       |
-       v
+        |
+        v
 Create Order
-       |
-       v
-Save Order
-       |
-       v
+        |
+        v
 Save Order Items
-       |
-       v
+        |
+        v
 Save Payment
-       |
-       v
+        |
+        v
 COMMIT
 ```
 
-If any step fails:
+If any operation fails:
 
 ```text
 Failure
    |
    v
 ROLLBACK
+   |
+   +---- Restore inventory changes
+   |
+   +---- Prevent partial order persistence
+   |
+   +---- Prevent partial payment persistence
 ```
-
-This prevents partial updates such as inventory being reduced without an order being created.
-
----
 
 ## ACID Transaction Concepts
 
-The checkout implementation demonstrates important ACID transaction properties.
+### Atomicity
 
-```text
-Atomicity
-→ Checkout operations succeed together or are rolled back together.
+Checkout operations succeed together or are rolled back together.
 
-Consistency
-→ Foreign keys, CHECK constraints, and validation keep the database valid.
+### Consistency
 
-Isolation
-→ Concurrent checkout transactions do not oversell inventory.
+Foreign keys, validation and database constraints preserve valid data.
 
-Durability
-→ Successfully committed orders and payments remain persisted in MySQL.
-```
+### Isolation
 
----
+Concurrent checkout transactions must not oversell inventory.
 
-## Concurrency and Atomic Inventory Reservation
+### Durability
 
-Inventory reservation is performed using an atomic SQL statement:
+Successfully committed orders and payments remain stored in MySQL.
+
+## Atomic Inventory Reservation
+
+The database uses conditional stock updates:
 
 ```sql
 UPDATE inventory
@@ -212,137 +295,53 @@ WHERE product_id = ?
   AND quantity >= ?;
 ```
 
-This prevents multiple concurrent checkout requests from purchasing more stock than is available.
+This prevents concurrent checkout requests from purchasing unavailable stock.
 
-A concurrency integration test executes:
+## Concurrency Integration Testing
+
+A historical V2 test scenario:
 
 ```text
 Initial inventory: 50
 
-100 concurrent checkout attempts
-20 worker threads
+Concurrent checkout attempts: 100
+Worker threads: 20
 
-Result:
-
-50 successful checkouts
-50 rejected due to insufficient stock
-0 unexpected errors
+Successful checkouts: 50
+Rejected checkouts: 50
 
 Final inventory: 0
 Orders committed: 50
 Payments committed: 50
 ```
 
----
-
 ## Repository Pattern
-
-V2 separates business logic from database persistence using repository interfaces and JDBC implementations.
 
 ```text
 ProductRepository
     |
-    └── JdbcProductRepository
+    +---- JdbcProductRepository
 
 CustomerRepository
     |
-    └── JdbcCustomerRepository
+    +---- JdbcCustomerRepository
 
 InventoryRepository
     |
-    └── JdbcInventoryRepository
+    +---- JdbcInventoryRepository
 
 OrderRepository
     |
-    └── JdbcOrderRepository
+    +---- JdbcOrderRepository
 
 PaymentRepository
     |
-    └── JdbcPaymentRepository
+    +---- JdbcPaymentRepository
 ```
-
-Repositories are responsible for operations such as:
-
-```text
-INSERT
-SELECT
-UPDATE
-DELETE
-ResultSet mapping
-PreparedStatement handling
-```
-
-The checkout service focuses on the business workflow instead of containing SQL directly.
-
----
-
-## Design Patterns
-
-The project applies several design patterns.
-
-```text
-Repository Pattern
-→ Separates persistence logic from application/business logic.
-
-Strategy Pattern
-→ Card, UPI, and Wallet payment implementations.
-
-Factory Pattern
-→ PaymentFactory selects the appropriate payment strategy.
-
-Builder Pattern
-→ Used to construct Order objects.
-
-Observer Pattern
-→ Used in V1 for notifications and analytics.
-
-Dependency Injection
-→ Repositories and payment processor factories are supplied to services.
-
-Functional Factory Injection
-→ Function<PaymentType, PaymentProcessor> improves payment testability.
-```
-
----
-
-## SOLID Principles
-
-The project applies SOLID principles where appropriate.
-
-```text
-Single Responsibility Principle
-→ Repositories, checkout services, payment processors, and database
-  connection utilities have separate responsibilities.
-
-Open/Closed Principle
-→ New payment strategies can be added without rewriting PaymentProcessor.
-
-Liskov Substitution Principle
-→ Repository implementations follow repository contracts.
-
-Interface Segregation Principle
-→ Product, Customer, Inventory, Order, and Payment persistence use
-  separate focused interfaces.
-
-Dependency Inversion Principle
-→ Partially applied through abstractions and dependency injection.
-  JdbcCheckoutService currently uses concrete JDBC repositories because
-  shared Connection objects are required for manual JDBC transaction control.
-```
-
-A future Spring version can improve this further using framework-managed transactions such as `@Transactional`.
-
----
 
 ## Database Schema
 
-The database schema is stored in:
-
-```text
-src/main/resources/schema.sql
-```
-
-The schema contains the following tables:
+The relational schema includes:
 
 ```text
 products
@@ -353,342 +352,110 @@ order_items
 payments
 ```
 
-Main relationships:
+The main relationships are:
 
 ```text
-customers
-    |
-    v
-orders
-    |
-    +-----------> order_items
-    |
-    +-----------> payments
+Customer
+   |
+   v
+ Orders
+   |
+   +------ OrderItems
+   |
+   +------ Payments
 
-products
-    |
-    +-----------> inventory
-    |
-    +-----------> order_items
-```
-
-`order_items` and `payments` use `ON DELETE CASCADE` when their associated order is deleted.
-
----
-
-## Project Structure
-
-```text
-ECommerceOrderEngine/
-│
-├── pom.xml
-│
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/ecommerce/
-│   │   │       │
-│   │   │       ├── analytics/
-│   │   │       │
-│   │   │       ├── checkout/
-│   │   │       │   ├── CheckoutService.java
-│   │   │       │   └── JdbcCheckoutService.java
-│   │   │       │
-│   │   │       ├── database/
-│   │   │       │   └── DatabaseConnection.java
-│   │   │       │
-│   │   │       ├── exception/
-│   │   │       │   ├── InsufficientStockException.java
-│   │   │       │   └── PaymentFailedException.java
-│   │   │       │
-│   │   │       ├── inventory/
-│   │   │       │
-│   │   │       ├── model/
-│   │   │       │   ├── Cart.java
-│   │   │       │   ├── CartItem.java
-│   │   │       │   ├── Customer.java
-│   │   │       │   ├── Order.java
-│   │   │       │   ├── OrderItem.java
-│   │   │       │   ├── OrderStatus.java
-│   │   │       │   ├── PaymentType.java
-│   │   │       │   └── Product.java
-│   │   │       │
-│   │   │       ├── notification/
-│   │   │       │
-│   │   │       ├── payment/
-│   │   │       │   ├── CardPaymentStrategy.java
-│   │   │       │   ├── PaymentFactory.java
-│   │   │       │   ├── PaymentProcessor.java
-│   │   │       │   ├── PaymentResult.java
-│   │   │       │   ├── PaymentStrategy.java
-│   │   │       │   ├── UpiPaymentStrategy.java
-│   │   │       │   └── WalletPaymentStrategy.java
-│   │   │       │
-│   │   │       ├── persistence/
-│   │   │       │
-│   │   │       ├── repository/
-│   │   │       │   ├── ProductRepository.java
-│   │   │       │   ├── JdbcProductRepository.java
-│   │   │       │   ├── CustomerRepository.java
-│   │   │       │   ├── JdbcCustomerRepository.java
-│   │   │       │   ├── InventoryRepository.java
-│   │   │       │   ├── JdbcInventoryRepository.java
-│   │   │       │   ├── OrderRepository.java
-│   │   │       │   ├── JdbcOrderRepository.java
-│   │   │       │   ├── PaymentRepository.java
-│   │   │       │   └── JdbcPaymentRepository.java
-│   │   │       │
-│   │   │       └── web/
-│   │   │           ├── ProductServlet.java
-│   │   │           ├── CustomerServlet.java
-│   │   │           ├── CartServlet.java
-│   │   │           ├── CheckoutServlet.java
-│   │   │           ├── OrderServlet.java
-│   │   │           ├── OrderViewServlet.java
-│   │   │           └── InventoryServlet.java
-│   │   │
-│   │   ├── resources/
-│   │   │   └── schema.sql
-│   │   │
-│   │   └── webapp/
-│   │       ├── css/
-│   │       │   └── styles.css
-│   │       └── WEB-INF/
-│   │           └── views/
-│   │               ├── includes/
-│   │               │   └── header.jsp
-│   │               ├── products.jsp
-│   │               ├── customers.jsp
-│   │               ├── cart.jsp
-│   │               ├── checkout.jsp
-│   │               ├── orders.jsp
-│   │               ├── order-details.jsp
-│   │               └── inventory.jsp
-│   │
-│   └── test/
-│       └── java/
-│           └── com/ecommerce/
-│
-├── docs/
-│   └── screenshots/
-│
-└── README.md
-```
-
----
-
-## Database Configuration
-
-The application uses environment variables for database configuration.
-
-The database password must not be committed to source control.
-
-Example:
-
-```bash
-read -s "ECOMMERCE_DB_PASSWORD?MySQL password: "
-export ECOMMERCE_DB_PASSWORD
-```
-
-The application also supports:
-
-```text
-ECOMMERCE_DB_URL
-ECOMMERCE_DB_USER
-ECOMMERCE_DB_PASSWORD
-```
-
-Default database configuration:
-
-```text
-Database: ecommerce_db
-Host: localhost
-Port: 3306
-```
-
----
-
-## Running Tests
-
-Run the complete test suite with:
-
-```bash
-mvn test
-```
-
-Current automated test status:
-
-```text
-Tests: 214
-Failures: 0
-Errors: 0
-Skipped: 0
-```
-
-The test suite runs against the isolated `ecommerce_test_db` and includes:
-
-```text
-Unit tests
-JDBC repository integration tests
-Hibernate repository integration tests
-Database transaction tests
-Hibernate transaction tests
-Rollback tests
-Inventory concurrency tests
-Concurrent checkout tests
-Payment failure tests
-Insufficient stock tests
-```
-
----
-
-## Key Concepts Demonstrated
-
-```text
-Maven
-JDBC
-Hibernate ORM
-JPA
-HQL
-MySQL
-PreparedStatement
-ResultSet
-Optional
-Repository Pattern
-CRUD
-Entity Mapping
-Persistence Context
-Dirty Checking
-Entity Relationships
-Composite Keys
-SQL JOINs
-Foreign Keys
-Database Constraints
-Batch Operations
-Transactions
-Commit / Rollback
-ACID Properties
-Atomic SQL Updates
-Concurrency Control
-ExecutorService
-CountDownLatch
-AtomicInteger
-Integration Testing
-Dependency Injection
-SOLID Principles
-Design Patterns
-Jakarta Servlets
-JSP
-JSTL
-Expression Language (EL)
-HttpSession
-WAR Packaging
-Apache Tomcat
-MVC-style Web Layer
-Friendly HTTP Error Handling
-Development/Test Database Isolation
-Hibernate Test Database Isolation
+Product
+   |
+   +------ Inventory
+   |
+   +------ OrderItems
 ```
 
 ---
 
 # V3 – Servlets + JSP + Tomcat
 
-V3 turns the JDBC-backed application into a server-rendered web application deployed as a WAR on Apache Tomcat.
+V3 converts the JDBC-backed application into a server-rendered web application using Jakarta Servlets, JSP and Apache Tomcat.
 
-The existing V2 domain, repository, payment, inventory, and transactional checkout logic are reused rather than duplicated in the web layer.
+The existing V2 checkout logic and repository implementations are reused instead of rewriting the business layer.
 
 ## V3 Features
 
-- Apache Tomcat deployment using WAR packaging
+- Apache Tomcat deployment
+- WAR packaging
 - Jakarta Servlet API
 - JSP views
-- JSTL and Expression Language (EL)
-- Product web CRUD
-- Customer web CRUD
-- Session-based shopping cart using `HttpSession`
-- Add, update, remove, and clear cart operations
-- Customer and payment selection during checkout
-- Transactional web checkout through `JdbcCheckoutService`
-- Atomic inventory reservation
-- Payment processing using Card, UPI, and Wallet strategies
+- JSTL and Expression Language
+- Product CRUD through web pages
+- Customer CRUD through web pages
+- Session-based shopping cart
+- Add, update, remove and clear cart operations
+- Transactional checkout
 - Order success page
-- Order history and order-detail pages
-- Order creation date/time display
+- Order history and order details
 - Inventory dashboard
-- Add-stock and set-stock operations
-- Friendly checkout and constraint-error pages
+- Stock updates
+- Friendly HTTP error handling
 - Shared navigation and CSS
-- Separate development and automated-test databases
+- Separate development and test databases
 
-## V3 Web Architecture
+## V3 Architecture
 
 ```text
-                         Browser
-                            |
-                            v
-                     Apache Tomcat
-                            |
-                            v
-                         Servlets
-                            |
-                +-----------+-----------+
-                |                       |
-                v                       v
-         JSP + JSTL + EL          Application Services
-                                         |
-                                         v
-                               JdbcCheckoutService
-                                         |
-                           +-------------+-------------+
-                           |             |             |
-                           v             v             v
-                     InventoryRepo   OrderRepo    PaymentRepo
-                           |             |             |
-                           +-------------+-------------+
-                                         |
-                                         v
-                                        JDBC
-                                         |
-                                         v
-                                       MySQL
+                  Browser
+                     |
+                     v
+                Apache Tomcat
+                     |
+                     v
+                   Servlets
+                     |
+           +---------+----------+
+           |                    |
+           v                    v
+        JSP Views        Application Services
+                                |
+                                v
+                       JdbcCheckoutService
+                                |
+                       JDBC Repositories
+                                |
+                                v
+                              MySQL
 ```
-
-The Servlets handle HTTP input, request/session state, routing, and preparation of view data. JSP pages are responsible for presentation, while existing services and repositories continue to contain business and persistence logic.
 
 ## Servlet and JSP Flow
 
 ```text
 Browser Request
-      |
-      v
-Servlet
-      |
-      +--> Validate request parameters
-      |
-      +--> Call repository/service
-      |
-      +--> Store data in request/session
-      |
-      v
-JSP
-      |
-      +--> JSTL for loops/conditions
-      |
-      +--> EL for object properties
-      |
-      v
-HTML Response
+       |
+       v
+     Servlet
+       |
+       +---- Validate request
+       |
+       +---- Execute service operation
+       |
+       +---- Prepare request attributes
+       |
+       v
+       JSP
+       |
+       +---- JSTL
+       |
+       +---- Expression Language
+       |
+       v
+  HTML Response
 ```
 
-The main JSP pages are scriptlet-free and use JSTL + EL instead of embedding Java code directly in the view layer.
+The JSP pages use JSTL and EL to avoid embedding business logic directly in the view layer.
 
 ## Product and Customer CRUD
 
-V3 exposes browser-based CRUD flows for products and customers.
-
 ```text
 Products
+
 GET  /products
 GET  /products/new
 POST /products
@@ -697,6 +464,7 @@ POST /products/edit
 POST /products/delete
 
 Customers
+
 GET  /customers
 GET  /customers/new
 POST /customers
@@ -705,11 +473,27 @@ POST /customers/edit
 POST /customers/delete
 ```
 
-Foreign-key conflicts are handled without weakening database constraints. Referenced products and customers return a friendly conflict page instead of exposing the default Tomcat error page.
-
 ## Session-Based Shopping Cart
 
-The shopping cart is stored in `HttpSession`, allowing cart contents to survive across multiple HTTP requests for the same browser session.
+Cart data is stored in `HttpSession`.
+
+```text
+Browser
+   |
+   v
+Tomcat Session
+   |
+   v
+Shopping Cart
+   |
+   +---- CartItem
+   |
+   +---- CartItem
+   |
+   +---- CartItem
+```
+
+Supported operations include:
 
 ```text
 POST /cart/add
@@ -719,189 +503,51 @@ POST /cart/remove
 POST /cart/clear
 ```
 
-```text
-Browser
-   |
-   | JSESSIONID
-   v
-Tomcat HttpSession
-   |
-   └── cart
-       ├── CartItem
-       ├── CartItem
-       └── CartItem
-```
+## Transactional Checkout
 
-The existing `Cart` API is reused for add, remove, quantity-update, subtotal, and total calculations.
-
-## Web Checkout
-
-The checkout page reads the cart from the session and allows the user to select a customer and payment type.
+The Servlet layer delegates checkout processing to the existing JDBC checkout service.
 
 ```text
 Session Cart
      |
      v
-GET /checkout
-     |
-     v
-Select Customer + Payment Type
-     |
-     v
-POST /checkout
+CheckoutServlet
      |
      v
 JdbcCheckoutService
      |
-     +--> Reserve inventory
-     +--> Calculate total
-     +--> Process payment
-     +--> Create order
-     +--> Persist order/items
-     +--> Persist payment
+     +---- Reserve Inventory
+     |
+     +---- Calculate Total
+     |
+     +---- Process Payment
+     |
+     +---- Persist Order
+     |
+     +---- Persist Payment
      |
      v
 COMMIT
 ```
 
-On success, the cart is removed from the session only after the transaction commits.
+On failure, the database transaction rolls back.
 
-If checkout fails:
-
-```text
-Failure
-   |
-   v
-ROLLBACK
-   |
-   +--> Inventory changes reversed
-   +--> Order/payment not committed
-   +--> Session cart preserved
-```
-
-## Orders UI
-
-V3 provides browser-based order history and order details.
+## Development and Test Isolation
 
 ```text
-GET /orders
-GET /orders/view?id=...
-```
+Web Application
+      |
+      v
+  ecommerce_db
 
-Order details include:
 
-- Order ID
-- Customer
-- Status
-- Payment type
-- Creation date/time
-- Purchased products
-- Quantity
-- Historical unit price
-- Subtotal
-
-## Inventory UI
-
-The inventory dashboard displays current stock for each product and provides two distinct operations:
-
-```text
-Add Stock
-→ Increase existing quantity
-
-Set Stock
-→ Replace the current quantity, including setting it to 0
-```
-
-Checkout uses the same atomic stock-reservation logic introduced in V2.
-
-## Friendly Error Handling
-
-V3 replaces several raw Tomcat error pages with application-level views.
-
-Handled cases include:
-
-- Insufficient stock during checkout
-- Payment failure
-- Invalid checkout input
-- Duplicate customer ID/email
-- Referenced product deletion
-- Referenced customer deletion
-- Invalid order ID
-- Missing order
-
-The application preserves appropriate HTTP status codes such as `400`, `404`, and `409` while rendering a more useful response body.
-
-## Development and Test Database Isolation
-
-The running Tomcat application uses:
-
-```text
-ecommerce_db
-```
-
-Automated Maven/JUnit tests use:
-
-```text
+Automated Tests
+      |
+      v
 ecommerce_test_db
 ```
 
-The same `schema.sql` is applied to both databases, but their data remains independent.
-
-```text
-Tomcat / Manual Testing
-        |
-        v
-   ecommerce_db
-
-
-Maven / JUnit
-        |
-        v
-ecommerce_test_db
-```
-
-Maven Surefire supplies the test database URL through `ECOMMERCE_DB_URL`, while the application falls back to the normal development database when the override is not present.
-
-This prevents automated test cleanup from deleting or conflicting with manually created development data.
-
-## Running V3 Locally
-
-Build the application:
-
-```bash
-mvn clean package
-```
-
-The WAR is generated at:
-
-```text
-target/ecommerce-order-engine-3.0-SNAPSHOT.war
-```
-
-Set the database password:
-
-```bash
-read -s "ECOMMERCE_DB_PASSWORD?MySQL password: "
-export ECOMMERCE_DB_PASSWORD
-```
-
-Deploy the WAR to Tomcat as `ecommerce.war`:
-
-```bash
-rm -rf "$CATALINA_HOME/webapps/ecommerce"
-rm -f "$CATALINA_HOME/webapps/ecommerce.war"
-
-cp target/ecommerce-order-engine-3.0-SNAPSHOT.war \
-   "$CATALINA_HOME/webapps/ecommerce.war"
-
-"$CATALINA_HOME/bin/startup.sh"
-```
-
-Open:
-
-```text
-http://localhost:8080/ecommerce/products
-```
+This prevents automated database cleanup from interfering with manually created application data.
 
 ## V3 Screenshots
 
@@ -925,44 +571,34 @@ http://localhost:8080/ecommerce/products
 
 ![Orders](docs/screenshots/orders.png)
 
-### Order Details
-
-![Order Details](docs/screenshots/order-details.png)
-
 ### Inventory
 
 ![Inventory](docs/screenshots/inventory.png)
 
-### Checkout Error Handling
-
-![Checkout Error](docs/screenshots/checkout-error.png)
-
-
 ---
-
 
 # V4 – Hibernate + JPA
 
-V4 migrates the active persistence layer from direct JDBC repository implementations to Hibernate ORM using Jakarta Persistence (JPA) mappings.
+V4 migrates the active persistence layer from direct JDBC repository implementations to Hibernate ORM and Jakarta Persistence (JPA).
 
-The existing Servlet/JSP web layer is retained. Repository interfaces remain the boundary between the web/business layers and persistence, while Hibernate implementations now provide the runtime database access.
+The Servlet/JSP web layer remains in place.
+
+Hibernate replaces the manual persistence implementations while preserving transaction guarantees and preventing inventory overselling.
 
 ## V4 Goals
 
-- Preserve all V3 application behavior
-- Replace active JDBC persistence wiring with Hibernate/JPA
-- Keep the existing MySQL schema
+- Preserve existing V3 functionality
+- Replace active JDBC persistence with Hibernate/JPA
+- Maintain the existing MySQL schema
 - Preserve atomic inventory reservation
-- Preserve checkout commit/rollback guarantees
-- Avoid overselling during concurrent checkout
-- Keep historical order pricing stable
-- Maintain development/test database isolation
-- Add Hibernate-specific integration tests
-- Prepare the codebase for Spring and Spring Boot
+- Maintain transactional checkout
+- Preserve rollback behavior
+- Prevent concurrent inventory overselling
+- Maintain historical order pricing
+- Preserve development/test database isolation
+- Add Hibernate integration tests
 
-## Hibernate/JPA Entity Model
-
-The following existing domain concepts are mapped as JPA entities:
+## JPA Entity Model
 
 ```text
 Product
@@ -973,37 +609,29 @@ Inventory
 Payment
 ```
 
+Main relationships:
+
+```text
+Customer 1 ----- * Order
+Order    1 ----- * OrderItem
+Product  1 ----- * OrderItem
+Product  1 ----- 1 Inventory
+Order    1 ----- * Payment
+```
+
 `OrderItem` uses a composite embedded key:
 
 ```text
 OrderItemId
-├── orderId
-└── productId
+   |
+   +---- orderId
+   |
+   +---- productId
 ```
-
-Main relationships:
-
-```text
-Customer  1 ───── * Order
-Order     1 ───── * OrderItem
-Product   1 ───── * OrderItem
-Product   1 ───── 1 Inventory
-Order     1 ───── * Payment
-```
-
-`OrderItem` remains an explicit association entity rather than a direct many-to-many mapping because each purchased item stores both quantity and historical unit price.
 
 ## Hibernate Configuration
 
-Hibernate configuration is stored in:
-
-```text
-src/main/resources/hibernate.cfg.xml
-```
-
-The project uses Hibernate ORM 6.6.58.Final with Java 21 and MySQL 8.4.x.
-
-Schema handling uses:
+Hibernate is configured to validate the existing database schema rather than automatically replace it.
 
 ```xml
 <property name="hibernate.hbm2ddl.auto">
@@ -1011,37 +639,43 @@ Schema handling uses:
 </property>
 ```
 
-Hibernate therefore validates the existing schema instead of creating, dropping, or automatically changing tables.
-
-`HibernateUtil` injects the database password from `ECOMMERCE_DB_PASSWORD` and supports `ECOMMERCE_DB_URL` and `ECOMMERCE_DB_USER` overrides. This lets Tomcat use `ecommerce_db` while Maven/JUnit Hibernate tests use `ecommerce_test_db`.
-
 ## V4 Repository Architecture
 
 ```text
 ProductRepository
-├── JdbcProductRepository
-└── HibernateProductRepository
+    |
+    +---- JdbcProductRepository
+    |
+    +---- HibernateProductRepository
 
 CustomerRepository
-├── JdbcCustomerRepository
-└── HibernateCustomerRepository
+    |
+    +---- JdbcCustomerRepository
+    |
+    +---- HibernateCustomerRepository
 
 InventoryRepository
-├── JdbcInventoryRepository
-└── HibernateInventoryRepository
+    |
+    +---- JdbcInventoryRepository
+    |
+    +---- HibernateInventoryRepository
 
 OrderRepository
-├── JdbcOrderRepository
-└── HibernateOrderRepository
+    |
+    +---- JdbcOrderRepository
+    |
+    +---- HibernateOrderRepository
 
 PaymentRepository
-├── JdbcPaymentRepository
-└── HibernatePaymentRepository
+    |
+    +---- JdbcPaymentRepository
+    |
+    +---- HibernatePaymentRepository
 ```
 
-The JDBC implementations remain in the project as the V2/V3 implementation. The active V4 web application is wired to the Hibernate implementations.
+The JDBC implementations remain available as historical implementations, while the V4 application uses Hibernate repositories.
 
-## V4 Web Architecture
+## V4 Architecture
 
 ```text
 Browser
@@ -1050,274 +684,1330 @@ Browser
 Apache Tomcat
    |
    v
-Servlets
+Servlets + JSP
    |
-   +--------------------+
-   |                    |
-   v                    v
-JSP + JSTL + EL     Application Services
-                         |
-                         v
-                HibernateCheckoutService
-                         |
-             +-----------+-----------+
-             |           |           |
-             v           v           v
-        InventoryRepo  OrderRepo  PaymentRepo
-             |           |           |
-             +-----------+-----------+
-                         |
-                         v
-                 Hibernate / JPA
-                         |
-                         v
-                       JDBC
-                         |
-                         v
-                       MySQL
+   v
+Application Services
+   |
+   v
+HibernateCheckoutService
+   |
+   v
+Hibernate Repositories
+   |
+   v
+Hibernate / JPA
+   |
+   v
+MySQL
 ```
 
-The web layer no longer instantiates JDBC repository implementations.
+## Transaction Management
 
-## Hibernate Checkout Transaction
-
-`HibernateCheckoutService` preserves the same transaction guarantees introduced in V2.
-
-Instead of sharing one JDBC `Connection`, V4 shares one Hibernate `Session` and one Hibernate `Transaction` across the complete checkout.
+V4 uses a shared Hibernate `Session` and `Transaction` to execute checkout atomically.
 
 ```text
 BEGIN TRANSACTION
-       |
-       v
+        |
+        v
 Reserve Inventory
-       |
-       v
+        |
+        v
 Calculate Total
-       |
-       v
+        |
+        v
 Process Payment
-       |
-       v
-Create Order
-       |
-       v
-Persist Order + OrderItems
-       |
-       v
+        |
+        v
+Persist Order and Items
+        |
+        v
 Persist Payment
-       |
-       v
+        |
+        v
 COMMIT
 ```
 
-If any step fails:
+A failure triggers rollback.
+
+## Historical Pricing
+
+Order items preserve the price at the time of purchase.
 
 ```text
-Failure
-   |
-   v
-ROLLBACK
-   |
-   +--> Inventory reservation reversed
-   +--> Order not committed
-   +--> Order items not committed
-   +--> Payment not committed
+Product.price
+    |
+    +---- Current catalogue price
+
+OrderItem.unitPrice
+    |
+    +---- Historical purchase price
 ```
 
-## Atomic Inventory Reservation
-
-V4 preserves the concurrency-safe conditional stock update:
-
-```sql
-UPDATE inventory
-SET quantity = quantity - ?
-WHERE product_id = ?
-  AND quantity >= ?;
-```
-
-A failed reservation affects zero rows, so checkout can reject the request without overselling inventory.
-
-## Order Loading and Historical Pricing
-
-The Hibernate order repository loads the data required by the web layer before closing its `Session`:
-
-```text
-Order
-├── Customer
-└── OrderItems
-    └── Product
-```
-
-Historical pricing remains stored in `OrderItem.unitPrice`, while `Product.price` represents the current catalog price.
-
-## Payment Persistence
-
-V4 maps `payments` as a dedicated `Payment` entity.
-
-```text
-Order 1 ───── * Payment
-```
-
-The repository supports saving payment attempts, retrieving all attempts for an order, and retrieving the latest payment attempt.
-
-## Persistence Concepts Demonstrated
-
-```text
-SessionFactory
-Session
-Transaction
-Persistence Context
-First-Level Cache
-Transient / Managed / Detached Entities
-persist()
-find()
-merge()
-remove()
-flush()
-Dirty Checking
-HQL
-Fetch Joins
-Lazy Relationships
-Embedded Composite Keys
-@MapsId
-@ManyToOne
-@OneToMany
-@OneToOne
-@Enumerated
-```
+This prevents future product-price changes from altering historical order values.
 
 ## V4 Testing
 
-V4 adds Hibernate integration coverage without removing the existing JDBC tests.
+Hibernate tests cover:
 
-New Hibernate test classes:
+- Product repository operations
+- Customer repository operations
+- Inventory repository operations
+- Order repository operations
+- Payment repository operations
+- Successful checkout
+- Insufficient stock
+- Payment failure
+- Transaction rollback
+- Concurrent stock reservation
+
+---
+
+# V5 – Spring Framework + Spring Boot
+
+V5 introduces the Spring Framework and Spring Boot into ECommerceOrderEngine.
+
+The objective is to move from manually configured application infrastructure toward Spring-managed components, dependency injection, configuration and application lifecycle management.
+
+## V5 Features
+
+- Spring Framework integration
+- Spring Boot application initialization
+- Spring dependency injection
+- Inversion of Control
+- Spring-managed service components
+- Component scanning
+- Constructor-based dependency injection
+- Configuration through application properties
+- Spring application context
+- Embedded application server
+- Maven-based Spring Boot builds
+- Preparation for REST APIs and Spring Data JPA
+
+## Dependency Injection
+
+Spring manages the dependencies between controllers, services and repositories.
 
 ```text
-HibernateProductRepositoryTest
-HibernateCustomerRepositoryTest
-HibernateInventoryRepositoryTest
-HibernateOrderRepositoryTest
-HibernatePaymentRepositoryTest
-HibernateCheckoutServiceTest
+Spring Application Context
+          |
+          v
+      Controller
+          |
+          v
+        Service
+          |
+          v
+      Repository
 ```
 
-The Hibernate checkout tests verify:
+Constructor injection is used to provide dependencies rather than creating service and repository objects manually throughout the application.
+
+## Spring Boot Application Structure
 
 ```text
-Successful checkout
-→ stock reduced
-→ order persisted
-→ payment persisted
-
-Insufficient stock
-→ checkout rejected
-→ stock unchanged
-→ no order
-→ no payment
-
-Payment failure
-→ inventory reservation rolled back
-→ no order
-→ no payment
+EcommerceApplication
+        |
+        v
+Spring Boot
+        |
+        +---- Component Scanning
+        |
+        +---- Dependency Injection
+        |
+        +---- Auto Configuration
+        |
+        +---- Embedded Tomcat
+        |
+        +---- Application Properties
 ```
 
-Current complete automated test status:
+## Spring Concepts Demonstrated
+
+- Inversion of Control
+- Dependency Injection
+- Application Context
+- Bean Management
+- Component Scanning
+- Autoconfiguration
+- Service Layer Abstraction
+- Environment-Based Configuration
+- Embedded Server Deployment
+
+V5 establishes the framework foundation used by V6 and V7.
+
+---
+
+# V6 – REST APIs + Spring Data JPA + React + Spring AOP
+
+V6 extends the Spring Boot application into a full-stack application with a React frontend and REST-based communication.
+
+It also introduces **Spring AOP** for cross-cutting functionality such as method logging, execution-time measurement and auditing.
+
+## V6 Backend Features
+
+- Spring Boot REST controllers
+- Spring Web MVC
+- RESTful endpoints
+- JSON request and response bodies
+- Spring Data JPA repositories
+- Hibernate-based persistence
+- DTO-based API contracts
+- Request validation
+- Exception handling
+- Service layer architecture
+- Product management
+- Customer management
+- Inventory management
+- Order management
+- Transactional checkout processing
+- Maven-based application packaging
+
+## V6 REST Architecture
 
 ```text
-Tests: 214
-Failures: 0
-Errors: 0
-Skipped: 0
+React Frontend
+      |
+      | HTTP / JSON
+      v
+Spring Boot REST API
+      |
+      v
+REST Controllers
+      |
+      v
+Service Layer
+      |
+      v
+Spring Data JPA
+      |
+      v
+Hibernate ORM
+      |
+      v
+MySQL
 ```
 
-All automated database tests run against `ecommerce_test_db`, while the normal Tomcat application uses `ecommerce_db`.
+## REST API Modules
 
-## Running V4 Locally
+### Products
 
-Build:
+```text
+GET     /api/products
+POST    /api/products
+PUT     /api/products/{id}
+DELETE  /api/products/{id}
+```
+
+Additional endpoints support product-price management.
+
+### Inventory
+
+Inventory APIs support stock retrieval and authorized stock updates.
+
+### Orders
+
+Order APIs support order retrieval, order items and order-status updates.
+
+### Customers
+
+Customer APIs support customer management and account-associated profile operations.
+
+## React Frontend
+
+V6 introduces a React frontend using Vite.
+
+The frontend communicates with Spring Boot using REST APIs.
+
+### Storefront Features
+
+- Homepage
+- Product catalogue
+- Product filtering and sorting
+- Shopping cart
+- Quantity updates
+- Checkout interface
+- Order history
+- Responsive navigation
+
+### Management Features
+
+- Administrative dashboard
+- Product management
+- Customer management
+- Inventory management
+- Order management
+
+## React Application Architecture
+
+```text
+React Application
+       |
+       +---- Pages
+       |
+       +---- Components
+       |
+       +---- Context Providers
+       |
+       +---- API Services
+       |
+       +---- React Router
+       |
+       v
+Spring Boot REST APIs
+```
+
+## Spring AOP
+
+Spring Aspect-Oriented Programming is introduced in V6 to separate cross-cutting concerns from application business logic.
+
+The AOP implementation includes method logging, performance measurement and auditing functionality.
+
+### MethodLoggingAspect
+
+Records method execution events.
+
+```text
+Controller / Service Method
+          |
+          v
+      AOP Advice
+          |
+          +---- Method Entry
+          |
+          +---- Method Exit
+          |
+          +---- Success / Failure
+```
+
+### PerformanceMetricsAspect
+
+Measures method execution time.
+
+Example:
+
+```text
+ENTER ProductController.getAllProducts()
+
+PERFORMANCE ProductController.getAllProducts()
+Execution Time: 64 ms
+
+EXIT ProductController.getAllProducts()
+SUCCESS
+```
+
+### Auditing
+
+The AOP design supports auditing of selected application operations.
+
+Auditing should record relevant operational information without logging passwords, JWTs, OAuth authorization codes or other credentials.
+
+### Why Spring AOP?
+
+- Separates logging from business logic
+- Reduces duplicate cross-cutting code
+- Supports performance analysis
+- Improves maintainability
+- Makes operational behavior easier to observe
+
+## V6 Design Principles
+
+- Layered Architecture
+- Separation of Concerns
+- Dependency Injection
+- Repository Pattern
+- DTO Pattern
+- Transaction Management
+- Aspect-Oriented Programming
+- RESTful API Design
+- Reusable React Components
+
+---
+
+# V7 – Spring Security + Log4j2 + Monitoring + AWS
+
+**Current Version**
+
+V7 introduces authentication, authorization, identity management, production-style logging, monitoring and cloud deployment.
+
+The application runs as a three-tier full-stack system with React, Spring Boot and MySQL.
+
+## V7 Features
+
+- Spring Security
+- JWT authentication
+- Google OAuth2 / OpenID Connect
+- Google reCAPTCHA Enterprise
+- Role-based access control
+- Permission-based authorization
+- Resource ownership restrictions
+- Customer order isolation
+- Role assignment and removal
+- Account administration
+- Product image upload and management
+- Amazon S3 product image storage
+- Log4j2 logging
+- Spring Boot Actuator
+- Micrometer monitoring
+- Flyway database migrations
+- Automated security and integration testing
+- AWS deployment
+
+## V7 Three-Tier Architecture
+
+```text
+                 User / Browser
+                       |
+                       v
+               Amazon CloudFront
+                       |
+            +----------+-----------+
+            |                      |
+            v                      v
+      Amazon S3                HTTPS Origin
+    React Frontend                 |
+                                   v
+                              Nginx (EC2)
+                                   |
+                                   v
+                           Spring Boot REST API
+                                   |
+                                   v
+                             Amazon RDS
+                                MySQL
+```
+
+Product images are stored separately:
+
+```text
+React
+   |
+   v
+Spring Boot Image API
+   |
+   +---- Image Metadata -> MySQL RDS
+   |
+   +---- Image Content  -> Amazon S3
+```
+
+## AWS Infrastructure
+
+| Service | Responsibility |
+|---|---|
+| Amazon CloudFront | HTTPS frontend delivery and API routing |
+| Amazon S3 | React build assets |
+| Amazon EC2 | Spring Boot backend |
+| Amazon RDS | MySQL database |
+| Amazon S3 (Images) | Product image storage |
+| Nginx | HTTPS reverse proxy |
+| systemd | Backend process management |
+
+### Live Application
+
+https://dsohu6n1v0a1o.cloudfront.net
+
+The current deployment uses an existing EC2 backend rather than a highly available multi-instance cluster.
+
+Infrastructure changes are managed with an approximately $35/month AWS budget constraint.
+
+---
+
+## Spring Security
+
+Spring Security protects application operations using authenticated identity, roles and permissions.
+
+### Authentication
+
+Supported authentication methods:
+
+1. Email and password with JWT
+2. Google OAuth2 / OpenID Connect
+
+### Authorization
+
+Four application roles are defined:
+
+```text
+ROOT
+SELLER_ADMIN
+IT_SUPPORT
+CUSTOMER
+```
+
+Permissions are associated with roles.
+
+Administrative permissions are independent of normal shopping capabilities.
+
+## Role-Based Permissions
+
+| Functionality | CUSTOMER | SELLER_ADMIN | IT_SUPPORT | ROOT |
+|---|---|---|---|---|
+| Browse products | Yes | Yes | Yes | Yes |
+| Manage own cart | Yes | Yes | Yes | Yes |
+| Checkout | Yes | Yes | Yes | Yes |
+| View own orders | Yes | Yes | Yes | Yes |
+| Create products | No | Yes | No | Yes |
+| Update owned products | No | Yes | No | Yes |
+| Manage owned inventory | No | Yes | No | Yes |
+| Manage all inventory | No | No | No | Yes |
+| Manage product images | No | Owned products | No | All products |
+| Read seller orders | No | Own seller orders | No | Yes |
+| Manage user accounts | No | No | Authorized actions | Yes |
+| Assign and remove roles | No | No | Yes | Yes |
+| Full administration | No | No | No | Yes |
+
+Every authenticated role can also act as a normal shopper.
+
+ROOT receives every permission and can access account and role administration.
+
+IT_SUPPORT does not receive product-inventory or product-image management permissions.
+
+Administrative actions and role assignment must be independently authorized by the backend.
+
+---
+
+## JWT Authentication
+
+JWT authentication provides stateless API access.
+
+```text
+User Login
+    |
+    v
+Spring Security
+    |
+    v
+Credential Verification
+    |
+    v
+JWT Generation
+    |
+    v
+React Stores Authentication State
+    |
+    v
+Authenticated API Requests
+```
+
+JWT authorization uses the authenticated user's current permissions and account information.
+
+Inactive accounts must not receive new authentication tokens.
+
+## Google OAuth2
+
+Google OAuth2 enables users to authenticate through Google's identity provider.
+
+The implementation uses Spring Security OAuth2 and OpenID Connect.
+
+### Google Login Flow
+
+```text
+React Login
+     |
+     v
+Continue with Google
+     |
+     v
+Spring Security OAuth2
+     |
+     v
+Google Accounts
+     |
+     v
+Google OIDC Callback
+     |
+     v
+GoogleOAuth2AccountService
+     |
+     v
+Temporary One-Time Login Code
+     |
+     v
+React GoogleAuthCallback
+     |
+     v
+JWT Exchange Endpoint
+     |
+     v
+Authenticated User
+```
+
+### Security Controls
+
+- Verified Google email required
+- Stable Google OIDC subject used for identity
+- Existing LOCAL accounts are not automatically linked by email
+- New Google accounts receive CUSTOMER role
+- Account status is validated
+- Temporary login codes are session-bound
+- Temporary codes expire after 60 seconds
+- Temporary codes are single-use
+- JWTs are returned in API responses, not redirect URLs
+
+### OAuth2 Endpoints
+
+```text
+GET  /oauth2/authorization/google
+
+GET  /login/oauth2/code/google
+
+POST /api/auth/oauth2/exchange
+```
+
+Google client credentials are stored only in backend environment configuration.
+
+---
+
+## Google reCAPTCHA Enterprise
+
+The application integrates Google reCAPTCHA Enterprise into authentication-related workflows.
+
+reCAPTCHA helps detect suspicious or automated requests.
+
+The React frontend obtains reCAPTCHA tokens and sends them to the backend for verification.
+
+The backend must validate the token and associated action rather than trusting the frontend alone.
+
+---
+
+## Product Image Management
+
+V7 supports product image management with backend authorization.
+
+### Image Permissions
+
+- ROOT can manage images for all products.
+- SELLER_ADMIN can manage images for owned products.
+- CUSTOMER cannot upload or modify images.
+- IT_SUPPORT cannot upload or modify images.
+
+### Image Upload Workflow
+
+```text
+Authorized User
+       |
+       v
+React Product Management
+       |
+       v
+Spring Boot Image API
+       |
+       +---- Validate Image
+       |
+       +---- Check Authorization
+       |
+       +---- Verify Product Ownership
+       |
+       v
+Amazon S3 Image Storage
+       |
+       v
+Image Metadata in MySQL
+```
+
+### Product Image Display
+
+Product images are displayed through the reusable React `ProductImage` component.
+
+```jsx
+<ProductImage
+  productId={product.id}
+  productName={product.name}
+/>
+```
+
+Images are used in:
+
+- Product catalogue
+- Homepage featured products
+- Shopping cart
+
+Product IDs are used internally for image retrieval and cart operations without needing to display them in the customer-facing cart interface.
+
+---
+
+## Cart Management
+
+The React frontend provides separate cart storage for guests and authenticated users.
+
+### Guest Cart
+
+Stored in browser `sessionStorage`.
+
+### Authenticated Cart
+
+Stored in `localStorage` using the authenticated user's ID.
+
+```text
+ecommerce:cart:guest:v11
+
+ecommerce:cart:user:{userId}
+```
+
+Each authenticated account receives a separate cart.
+
+Guest cart merging is supported during appropriate guest-to-user sign-in transitions.
+
+Cart storage is client-side convenience state and does not replace backend authentication, pricing or inventory validation.
+
+---
+
+## Checkout and Order Isolation
+
+All authenticated roles are intended to have access to checkout and their own order history.
+
+Each purchase must be associated with the correct authenticated user and customer profile.
+
+The backend must independently enforce:
+
+- Checkout permission
+- Active-account validation
+- Server-side prices
+- Available stock
+- Atomic inventory reservation
+- Order ownership
+- Transaction rollback
+
+Seller-facing order management and personal shopping order history are separate capabilities.
+
+---
+
+## Flyway Database Migrations
+
+Flyway manages versioned database schema changes.
+
+The deployed MySQL database uses migration-controlled schema management.
+
+```text
+Spring Boot Startup
+       |
+       v
+Flyway Validation
+       |
+       v
+Apply Pending Migrations
+       |
+       v
+Spring Data JPA / Hibernate
+       |
+       v
+MySQL
+```
+
+The deployed environment has previously reported 11 successfully validated migrations.
+
+---
+
+## Log4j2 Logging
+
+V7 uses **Log4j2** as the application logging framework.
+
+Logging provides visibility into application activity, failures and operational behavior.
+
+### Logging Responsibilities
+
+- Application startup events
+- Controller and service activity
+- Authentication-related events
+- Authorization failures
+- Business operation errors
+- Performance diagnostics
+- Operational troubleshooting
+
+Spring AOP introduced in V6 supplies method-level instrumentation, while Log4j2 in V7 provides the logging infrastructure.
+
+### Logging Architecture
+
+```text
+Spring Boot Application
+         |
+         +---- REST Controllers
+         |
+         +---- Business Services
+         |
+         +---- Spring Security
+         |
+         +---- Spring AOP
+         |
+         v
+       Log4j2
+         |
+         v
+   Application Logs
+```
+
+Sensitive values must never be logged, including:
+
+```text
+Passwords
+JWTs
+OAuth2 authorization codes
+Google client secrets
+Database credentials
+Session cookies
+API keys
+```
+
+---
+
+## Application Monitoring
+
+V7 integrates Spring Boot Actuator and Micrometer for application observability.
+
+### Monitoring Areas
+
+- Application health
+- HTTP request metrics
+- JVM metrics
+- Application performance
+- Error diagnostics
+- Runtime monitoring
+
+### Monitoring Architecture
+
+```text
+Spring Boot Application
+          |
+          v
+       Actuator
+          |
+          v
+       Micrometer
+          |
+          v
+   Application Metrics
+```
+
+Administrative and diagnostic endpoints must be appropriately restricted.
+
+---
+
+## Testing
+
+The project uses automated tests across multiple versions.
+
+Test coverage includes:
+
+- Unit testing
+- Repository integration testing
+- Service testing
+- Database transaction testing
+- Concurrent checkout testing
+- Inventory reservation testing
+- Spring Boot startup testing
+- REST controller testing
+- Security authorization testing
+- Role and permission testing
+- Google OAuth2-related testing
+
+Run the test suite:
+
+```bash
+mvn test
+```
+
+The project has previously reported a V7 test run with more than 500 passing tests. The current exact test count should be taken from the latest Maven Surefire reports rather than assumed from historical runs.
+
+---
+
+## Local Development
+
+### Requirements
+
+```text
+Java 21
+Maven
+Node.js
+npm
+MySQL
+Git
+```
+
+### Backend
 
 ```bash
 mvn clean package
+
+mvn spring-boot:run
 ```
 
-WAR:
+Default development backend:
 
 ```text
-target/ecommerce-order-engine-4.0-SNAPSHOT.war
+http://localhost:8080
 ```
 
-Set the database password:
+A working development database and required environment configuration must be supplied.
+
+### React Frontend
+
+Inside the separate React project:
 
 ```bash
-read -s "ECOMMERCE_DB_PASSWORD?MySQL password: "
-export ECOMMERCE_DB_PASSWORD
+npm install
+
+npm run dev
 ```
 
-Deploy:
-
-```bash
-rm -rf "$CATALINA_HOME/webapps/ecommerce"
-rm -f "$CATALINA_HOME/webapps/ecommerce.war"
-
-cp target/ecommerce-order-engine-4.0-SNAPSHOT.war \
-   "$CATALINA_HOME/webapps/ecommerce.war"
-
-"$CATALINA_HOME/bin/startup.sh"
-```
-
-Open:
+Default Vite development URL:
 
 ```text
-http://localhost:8080/ecommerce/products
+http://localhost:5173
 ```
 
-V4 preserves the V3 browser flows for Product CRUD, Customer CRUD, Inventory, session-based Cart operations, Checkout, Order history, and Order details. The active persistence path now runs through Hibernate/JPA instead of direct JDBC repository implementations.
+Production build:
+
+```bash
+npm run build
+```
+
+Run frontend lint checks:
+
+```bash
+npm run lint
+```
+
+### Configuration
+
+Credentials must be provided through secure environment configuration.
+
+Do not commit:
+
+```text
+Database passwords
+JWT secrets
+Google OAuth2 client secrets
+AWS access keys
+reCAPTCHA backend API keys
+```
+
+Only public configuration, such as the frontend Google OAuth2 feature flag, belongs in Vite environment variables.
 
 ---
 
-## Future Improvements
+## AWS Deployment
 
-Future versions of the project will progressively introduce:
+### Frontend Deployment
 
 ```text
-Spring Core
+React Source
+     |
+     v
+Vite Production Build
+     |
+     v
+dist/
+     |
+     v
+Amazon S3
+     |
+     v
+Amazon CloudFront
+     |
+     v
+HTTPS Storefront
+```
+
+### Backend Deployment
+
+```text
+Java / Spring Boot
+        |
+        v
+Maven WAR Build
+        |
+        v
+Amazon EC2
+        |
+        v
+systemd Service
+        |
+        v
+Nginx Reverse Proxy
+        |
+        v
 Spring Boot
-REST APIs
-Spring Data JPA
-Spring Security
-Redis
-Kafka
-Docker
-Microservices
-Cloud Deployment
-CI/CD
+        |
+        v
+Amazon RDS MySQL
 ```
 
-Other technical improvements may include:
+### CloudFront API Routing
+
+The CloudFront distribution uses separate paths for backend traffic:
 
 ```text
-Complete BigDecimal migration across public monetary APIs
-Production-grade connection pooling
-Further query/fetch optimization
-Spring-managed transaction abstraction
-External payment idempotency
-Outbox / Saga patterns
-Testcontainers
+/api/*
+
+/oauth2/*
+
+/login/oauth2/*
+```
+
+The application uses HTTPS for browser-facing production traffic.
+
+### Deployment Security
+
+- Backend credentials are excluded from source control.
+- Database connectivity is restricted to the application infrastructure.
+- Product image storage is separate from frontend assets.
+- Spring Boot is proxied through Nginx.
+- Authentication and administrative actions are protected by Spring Security.
+- Production costs are monitored against the project's budget.
+
+---
+
+## Known Issues and Ongoing Verification
+
+The following items are being checked as part of current V7 testing:
+
+- Product-edit validation returning an unexpected HTTP 400 for an existing positive product ID.
+- End-to-end checkout verification for ROOT, SELLER_ADMIN and IT_SUPPORT.
+- Customer-profile association for administrative accounts when shopping.
+- Consistency of role-based behavior between React and Spring Boot.
+- Full regression testing after frontend authorization changes.
+
+These items are part of V7 stabilization, not completed future-version features.
+
+---
+
+# V8 – Spring AI (Planned)
+
+V8 will introduce **Spring AI** into ECommerceOrderEngine.
+
+The objective is to extend the existing Spring Boot application with AI-powered features while preserving its existing security, persistence and business workflows.
+
+## Planned Features
+
+- Spring AI integration
+- AI-powered product recommendations
+- Product discovery assistance
+- Conversational shopping assistant
+- Natural-language product search
+- Context-aware customer assistance
+- AI service integration with existing REST APIs
+
+## Proposed Architecture
+
+```text
+React Frontend
+      |
+      v
+Spring Boot REST API
+      |
+      v
+Spring AI Service Layer
+      |
+      v
+Configured AI Model Provider
+      |
+      v
+AI Response
+```
+
+## Security Considerations
+
+- Preserve existing authentication and authorization
+- Avoid exposing private account information
+- Apply server-side authorization before data retrieval
+- Avoid exposing application secrets to AI providers
+- Control model API costs and usage
+
+**Status: Planned — not implemented in V7.**
+
+---
+
+# V9 – Docker + Microservices (Planned)
+
+V9 will focus on containerization and a transition toward microservices architecture.
+
+The objective is to understand independent deployment, service boundaries, container networking and distributed application design.
+
+## Planned Technologies
+
+- Docker
+- Dockerfiles
+- Docker Compose
+- Microservices
+- REST-based service communication
+- Service-specific configuration
+- Container networking
+
+## Proposed Microservice Boundaries
+
+Potential service boundaries include:
+
+```text
+Authentication Service
+Product Catalogue Service
+Inventory Service
+Order Service
+Payment Service
+```
+
+Final boundaries will be decided based on business requirements and service ownership.
+
+## Proposed Architecture
+
+```text
+React Frontend
+      |
+      v
+API Entry Point
+      |
+      +---- Authentication Service
+      |
+      +---- Product Service
+      |
+      +---- Inventory Service
+      |
+      +---- Order Service
+      |
+      +---- Payment Service
+```
+
+### Docker Architecture
+
+```text
+Docker Environment
+        |
+        +---- Frontend Container
+        |
+        +---- Backend Service Containers
+        |
+        +---- Supporting Infrastructure
+```
+
+## Planned Learning Objectives
+
+- Containerize applications
+- Create Docker images
+- Manage container networking
+- Configure service environments
+- Understand distributed transactions
+- Evaluate inter-service communication
+- Handle service failures
+- Explore observability across services
+
+Microservice decomposition will be performed only after evaluating consistency, deployment complexity and operational cost.
+
+**Status: Planned — not implemented in V7.**
+
+---
+
+# V10 – Kubernetes + Docker + Jenkins CI/CD (Planned)
+
+V10 will focus on container orchestration and automated software delivery.
+
+The goal is to deploy and manage containerized services using Kubernetes and automate build, test and deployment workflows through Jenkins.
+
+## Planned Technologies
+
+- Docker
+- Kubernetes
+- Jenkins
+- CI/CD pipelines
+- Maven
+- npm / Vite
+- Container registries
+- Deployment manifests
+
+## Kubernetes Features to Explore
+
+- Pods
+- Deployments
+- Services
+- ConfigMaps
+- Secrets
+- Replica management
+- Rolling updates
+- Health probes
+- Resource requests and limits
+- Horizontal scaling
+- Service discovery
+
+## Jenkins CI/CD Pipeline
+
+```text
+Developer Push
+      |
+      v
+Git Repository
+      |
+      v
+Jenkins Pipeline
+      |
+      +---- Checkout Source
+      |
+      +---- Build Spring Boot
+      |
+      +---- Run Backend Tests
+      |
+      +---- Build React
+      |
+      +---- Run Frontend Checks
+      |
+      +---- Build Docker Images
+      |
+      +---- Push Images to Registry
+      |
+      +---- Deploy to Kubernetes
+      |
+      v
+Deployment Verification
+```
+
+## Proposed Deployment Architecture
+
+```text
+                 Users
+                   |
+                   v
+           Kubernetes Ingress
+                   |
+                   v
+            Kubernetes Services
+                   |
+          +--------+---------+
+          |        |         |
+          v        v         v
+       Product   Inventory   Order
+       Service   Service     Service
+          |        |         |
+          +--------+---------+
+                   |
+                   v
+             Data Storage
+```
+
+## Deployment Goals
+
+- Reproducible Docker builds
+- Automated testing
+- Automated deployment
+- Container orchestration
+- Rolling application updates
+- Health and readiness checks
+- Scalable service deployment
+- CI/CD troubleshooting
+- Application observability
+
+Kubernetes infrastructure selection will depend on technical needs and cost constraints.
+
+**Status: Planned — not implemented in V7.**
+
+---
+
+# Future Technical Improvements
+
+Further enhancements may include:
+
+- Redis caching
+- Kafka-based event-driven workflows
+- Payment idempotency
+- Transactional outbox patterns
+- Distributed transaction strategies
+- Testcontainers
+- Automated performance testing
+- Advanced observability
+- Infrastructure as Code
+- Cloud cost optimization
+- High-availability architecture
+
+These are potential enhancements and should not be interpreted as completed features.
+
+---
+
+# Version Roadmap
+
+```text
+V1  Core Java
+     COMPLETED
+      |
+      v
+V2  Maven + JDBC + MySQL
+     COMPLETED
+      |
+      v
+V3  Servlets + JSP + Tomcat
+     COMPLETED
+      |
+      v
+V4  Hibernate + JPA
+     COMPLETED
+      |
+      v
+V5  Spring Framework + Spring Boot
+     COMPLETED
+      |
+      v
+V6  REST APIs + Spring Data JPA
+    + React + Spring AOP
+     COMPLETED
+      |
+      v
+V7  Spring Security + JWT + OAuth2
+    + Log4j2 + Monitoring + AWS
+     CURRENT
+      |
+      v
+V8  Spring AI
+     PLANNED
+      |
+      v
+V9  Docker + Microservices
+     PLANNED
+      |
+      v
+V10 Kubernetes + Docker
+    + Jenkins CI/CD
+     PLANNED
 ```
 
 ---
 
-## Version Roadmap
+## Project Goals
 
-```text
-V1  Core Java                         
-V2  Maven + JDBC + MySQL                
-V3  Servlets + JSP + Tomcat             
-V4  Hibernate + JPA                    
-V5  Spring Core + Spring Boot           
-V6  REST APIs + Spring Data JPA
-V7  Spring Security
-V8  Advanced Integration Testing
-V9  Docker
-V10 Redis + Kafka + Microservices
-V11 Cloud + CI/CD
+ECommerceOrderEngine is designed as a progressive software engineering project that demonstrates:
+
+- Core Java and OOP
+- Data structures and collections
+- Concurrency and multithreading
+- SOLID principles and design patterns
+- Relational database programming
+- JDBC and database transactions
+- Hibernate and JPA
+- Spring Framework
+- Spring Boot
+- REST API design
+- React frontend development
+- Spring AOP
+- Application security
+- OAuth2 authentication
+- Role-based and permission-based authorization
+- Production logging
+- Application monitoring
+- Cloud deployment
+- Containerization and orchestration in future versions
+
+---
+
+## Project Status
+
+**Current Version:** V7
+
+**Live Application:** https://dsohu6n1v0a1o.cloudfront.net
+
+**Completed:** V1–V7
+
+**Next Planned Version:** V8 — Spring AI
+
+**Future Versions:**
+- V9 — Docker and Microservices
+- V10 — Kubernetes, Docker and Jenkins CI/CD
+
+---
+
+## License
+
+Add the appropriate license information before publishing or distributing this project under an open-source license.

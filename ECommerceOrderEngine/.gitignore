@@ -37,3 +37,6 @@ target/
 ### Local dependency JARs ###
 lib/*.jar
 logs/
+
+# Temporary AWS database migration exports
+migration-assets/aws-v11-import/

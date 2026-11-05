@@ -1,3 +1,4 @@
+
 package com.ecommerce.service;
 
 import com.ecommerce.audit.AuditAction;
@@ -9,6 +10,7 @@ import com.ecommerce.seller.model.Seller;
 import com.ecommerce.seller.model.SellerApprovalStatus;
 import com.ecommerce.seller.repository.SellerRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -24,31 +26,44 @@ import java.util.List;
 public class ProductService {
 
     private final SpringDataProductRepository productRepository;
+
     private final SellerRepository sellerRepository;
 
+    private final ProductImageDeletionService imageDeletionService;
 
+    /*
+     * Spring uses this constructor in the application.
+     * Image cleanup is a required dependency.
+     */
+    @Autowired
+    public ProductService(
+            SpringDataProductRepository productRepository,
+            SellerRepository sellerRepository,
+            ProductImageDeletionService imageDeletionService
+    ) {
+        this.productRepository = productRepository;
+        this.sellerRepository = sellerRepository;
+        this.imageDeletionService = imageDeletionService;
+    }
+
+    /*
+     * Backward-compatible constructor for existing
+     * unit tests that manually instantiate ProductService.
+     *
+     * The Spring application uses the three-argument
+     * constructor above.
+     */
     public ProductService(
             SpringDataProductRepository productRepository,
             SellerRepository sellerRepository
     ) {
-
-        this.productRepository = productRepository;
-        this.sellerRepository = sellerRepository;
+        this(productRepository, sellerRepository, null);
     }
 
-
     /*
-     * Create product
-     *
-     * ROOT:
-     * - can create a system/catalogue product
-     * - does not need a Seller profile
-     *
-     * SELLER_ADMIN:
-     * - must have PRODUCT_CREATE
-     * - must have a Seller profile
-     * - Seller must be APPROVED
-     * - product is automatically assigned to that Seller
+     * =========================================================
+     * CREATE PRODUCT
+     * =========================================================
      */
     @AuditAction(
             action = "PRODUCT_CREATED",
@@ -69,69 +84,47 @@ public class ProductService {
             );
         }
 
-
         /*
-         * ROOT can create catalogue/system products
-         * without being associated with a Seller.
+         * ROOT creates catalogue products without
+         * requiring a Seller profile.
          */
-        if (hasAuthority(
-                authentication,
-                "ROLE_ROOT"
-        )) {
+        if (hasAuthority(authentication, "ROLE_ROOT")) {
 
             return productRepository.save(product);
         }
 
-
         /*
-         * Seller creation requires a JWT because
-         * ownership is determined from the signed userId claim.
+         * Seller creation requires JWT authentication.
          */
-        if (!(authentication
-                instanceof JwtAuthenticationToken jwtAuthentication)) {
+        if (!(authentication instanceof
+                JwtAuthenticationToken jwtAuthentication)) {
 
             throw new AccessDeniedException(
                     "JWT authentication is required"
             );
         }
 
-
         Number userIdClaim =
                 jwtAuthentication
                         .getToken()
                         .getClaim("userId");
 
-
         if (userIdClaim == null) {
-
             throw new AccessDeniedException(
                     "JWT userId claim is required"
             );
         }
 
+        long userId = userIdClaim.longValue();
 
-        long userId =
-                userIdClaim.longValue();
+        Seller seller = sellerRepository
+                .findByUserId(userId)
+                .orElseThrow(() ->
+                        new AccessDeniedException(
+                                "Seller profile is required"
+                        )
+                );
 
-
-        /*
-         * Find the Seller associated with the
-         * currently authenticated user.
-         */
-        Seller seller =
-                sellerRepository
-                        .findByUserId(userId)
-                        .orElseThrow(() ->
-                                new AccessDeniedException(
-                                        "Seller profile is required"
-                                )
-                        );
-
-
-        /*
-         * Having SELLER_ADMIN role is not enough.
-         * The Seller must also be approved.
-         */
         if (seller.getApprovalStatus()
                 != SellerApprovalStatus.APPROVED) {
 
@@ -140,25 +133,21 @@ public class ProductService {
             );
         }
 
-
         /*
-         * Seller ownership comes from the authenticated
-         * account — never from frontend input.
+         * Ownership comes from the authenticated account.
          */
         product.assignSeller(seller);
-
 
         return productRepository.save(product);
     }
 
-
     /*
-     * Find product by id
+     * =========================================================
+     * FIND PRODUCT BY ID
+     * =========================================================
      */
     @Transactional(readOnly = true)
-    public Product findByIdOrThrow(
-            long id
-    ) {
+    public Product findByIdOrThrow(long id) {
 
         return productRepository
                 .findById(id)
@@ -169,9 +158,10 @@ public class ProductService {
                 );
     }
 
-
     /*
-     * Find all products
+     * =========================================================
+     * FIND ALL PRODUCTS
+     * =========================================================
      */
     @Transactional(readOnly = true)
     public List<Product> findAll() {
@@ -179,26 +169,10 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-
     /*
-     * Existing generic update method.
-     *
-     * We will review this separately because the
-     * marketplace ownership path currently uses
-     * replace() and updatePrice().
-     */
-
-
-
-    /*
-     * Replace product details
-     *
-     * ROOT:
-     * - may update any product
-     *
-     * SELLER_ADMIN:
-     * - needs PRODUCT_UPDATE_OWN
-     * - must own the product
+     * =========================================================
+     * REPLACE PRODUCT DETAILS
+     * =========================================================
      */
     @AuditAction(
             action = "PRODUCT_REPLACED",
@@ -217,26 +191,17 @@ public class ProductService {
             BigDecimal price
     ) {
 
-        Product product =
-                productRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Product not found: " + id
-                                )
-                        );
-
+        Product product = productRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Product not found: " + id
+                        )
+                );
 
         /*
-         * Modify the existing managed entity instead
-         * of constructing a new Product.
-         *
-         * This preserves:
-         * - seller
-         * - description
-         * - brand
-         * - imageUrl
-         * - active
+         * Preserve seller ownership and additional
+         * product attributes during updates.
          */
         product.replaceDetails(
                 name,
@@ -244,13 +209,13 @@ public class ProductService {
                 price
         );
 
-
         return product;
     }
 
-
     /*
-     * Update product price
+     * =========================================================
+     * UPDATE PRODUCT PRICE
+     * =========================================================
      */
     @AuditAction(
             action = "PRODUCT_PRICE_UPDATED",
@@ -267,28 +232,35 @@ public class ProductService {
             BigDecimal newPrice
     ) {
 
-        Product product =
-                productRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Product not found: " + id
-                                )
-                        );
+        Product product = productRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Product not found: " + id
+                        )
+                );
 
-
-        product.updatePrice(
-                newPrice
-        );
-
+        product.updatePrice(newPrice);
 
         return product;
     }
 
-
     /*
-     * Delete product
+     * =========================================================
+     * DELETE PRODUCT
+     *
+     * ROOT:
+     * - Can delete any product.
+     *
+     * SELLER_ADMIN:
+     * - Requires PRODUCT_DELETE_OWN.
+     * - Must own the product.
+     *
+     * Image metadata is removed transactionally.
+     * Physical files are removed only after commit.
+     * =========================================================
      */
+
     @AuditAction(
             action = "PRODUCT_DELETED",
             entity = "PRODUCT"
@@ -299,10 +271,12 @@ public class ProductService {
                     "@productAuth.isOwner(#id, authentication))"
     )
     @Transactional
-    public void deleteOrThrow(
-            long id
-    ) {
+    public void deleteOrThrow(long id) {
 
+        /*
+         * Preserve the existing repository interaction
+         * expected by the original unit tests.
+         */
         if (!productRepository.existsById(id)) {
 
             throw new ResourceNotFoundException(
@@ -310,14 +284,32 @@ public class ProductService {
             );
         }
 
+        /*
+         * Remove image metadata within the transaction.
+         * Physical files are deleted only after commit.
+         */
+        if (imageDeletionService != null) {
 
+            imageDeletionService.deleteImagesForProduct(id);
+        }
+
+        /*
+         * Preserve the original deleteById operation.
+         */
         productRepository.deleteById(id);
+
+        /*
+         * Flush database changes so FK violations
+         * are detected before the transaction commits.
+         */
+        productRepository.flush();
     }
 
 
     /*
-     * Utility used internally to check whether
-     * Authentication contains a specific authority.
+     * =========================================================
+     * AUTHORITY UTILITY
+     * =========================================================
      */
     private boolean hasAuthority(
             Authentication authentication,
@@ -327,7 +319,6 @@ public class ProductService {
         if (authentication == null) {
             return false;
         }
-
 
         return authentication
                 .getAuthorities()
@@ -339,42 +330,39 @@ public class ProductService {
                 );
     }
 
+    /*
+     * =========================================================
+     * SELLER PRODUCT LISTING
+     * =========================================================
+     */
     @PreAuthorize("hasRole('SELLER_ADMIN')")
     @Transactional(readOnly = true)
     public List<Product> findAllForSeller(
             Authentication authentication
     ) {
 
-        if (!(authentication
-                instanceof JwtAuthenticationToken jwtAuthentication)) {
+        if (!(authentication instanceof
+                JwtAuthenticationToken jwtAuthentication)) {
 
             throw new AccessDeniedException(
                     "JWT authentication is required"
             );
         }
 
-
         Number userIdClaim =
                 jwtAuthentication
                         .getToken()
                         .getClaim("userId");
 
-
         if (userIdClaim == null) {
-
             throw new AccessDeniedException(
                     "JWT userId claim is required"
             );
         }
 
-
-        long userId =
-                userIdClaim.longValue();
-
+        long userId = userIdClaim.longValue();
 
         return productRepository
-                .findAllBySellerUserId(
-                        userId
-                );
+                .findAllBySellerUserId(userId);
     }
 }
